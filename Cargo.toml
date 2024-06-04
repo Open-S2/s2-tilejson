@@ -1,0 +1,43 @@
+[package]
+name = "s2-tilejson"
+version = "0.1.0"
+edition = "2021"
+authors = ["Craig O'Connor <oconnorct1@gmail.com>"]
+description = "Triangle mesh designed to be fast, efficient, and sphere capable."
+documentation = "https://docs.rs/s2-tilejson"
+homepage = "https://github.com/OpenS2/s2-tilejson"
+repository = "https://github.com/OpenS2/s2-tilejson"
+readme = "README.md"
+categories = ["no-std", "algorithms"]
+keywords = ["s2-tilejson", "earcut", "gis", "low-cost-code"]
+license = "MIT"
+# Include only specific files and directories
+# include = ["/ovtile", "Cargo.toml", "Cargo.lock", "README.md", "LICENSE"]
+exclude = [
+    "/assets",
+    "/benchmarks",
+    "/docs",
+    "/test",
+    "/tools",
+    "/src",
+    ".github",
+    ".helix"
+]
+
+[lib]
+name = "rust"
+path = "rust/lib.rs"
+bench = true
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+
+[dev-dependencies]
+
+[features]
+default = ["std"]
+std = []
+
+[profile.bench]
+opt-level = 3

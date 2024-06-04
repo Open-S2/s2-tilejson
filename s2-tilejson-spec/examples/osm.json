@@ -1,0 +1,43 @@
+{
+    "s2tilejson": "1.0.0",
+    "name": "OpenStreetMap",
+    "description": "A free editable map of the whole world.",
+    "version": "1.0.0",
+    "attribution": "https://www.openstreetmap.org/copyright/",
+    "scheme": "xyz",
+    "minzoom": 0,
+    "maxzoom": 18,
+    "bounds": { // bounds[zoom] = [...]
+        "0": [0, 0, 0, 0],
+        "1": [0, 1, 0, 0],
+        "2": [0, 3, 1, 3]
+    },
+    "vector_layers": [
+        {
+            "id": "telephone",
+            "description": "tracking phone numbers",
+            "minzoom": 0,
+            "maxzoom": 13,
+            "fields": {
+                "phone_number": "the phone number",
+                "payment": "how to pay"
+            },
+            "drawTypes": [1]
+        },
+        {
+            "id": "bicycle_parking",
+            "fields": {
+                "type": "the type of bike parking",
+                "year_installed": "the year the bike parking was installed"
+            }
+        },
+        {
+            "id": "showers",
+            "fields": {
+                "water_temperature": "the maximum water temperature",
+                "wear_sandles": "whether you should wear sandles or not",
+                "wheelchair": "is the shower wheelchair friendly?"
+            }
+        }
+    ]
+}
