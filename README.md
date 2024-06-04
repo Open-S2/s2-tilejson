@@ -5,8 +5,8 @@
 [npm-url]: https://npmjs.org/package/s2-tilejson
 [crate-image]: https://img.shields.io/crates/v/s2-tilejson.svg?logo=rust&logoColor=white
 [crate-url]: https://crates.io/crates/s2-tilejson
-[bundle-image]: https://img.shields.io/bundlejs/size/s2-tilejson?exports=s2-tilejson
-[bundle-url]: https://bundlejs.com/?q=s2-tilejson&treeshake=%5B%7B+s2-tilejson+%7D%5D
+[bundle-image]: https://img.shields.io/bundlejs/size/s2-tilejson
+[bundle-url]: https://bundlejs.com/?q=s2-tilejson&treeshake=%5B*%5D
 [downloads-image]: https://img.shields.io/npm/dm/s2-tilejson.svg
 [downloads-url]: https://www.npmjs.com/package/s2-tilejson
 [docs-ts-image]: https://img.shields.io/badge/docs-typescript-yellow.svg
