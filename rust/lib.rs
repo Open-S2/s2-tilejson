@@ -1,10 +1,8 @@
 #![no_std]
-// #![deny(missing_docs)]
+#![deny(missing_docs)]
 //! The `s2-tilejson` Rust crate... TODO
 
 extern crate alloc;
-
-use core::u64;
 
 use serde::{Serialize, Deserialize};
 
@@ -61,8 +59,10 @@ pub struct BBox<T> {
     pub top: T,
 }
 
+/// Use bounds as floating point numbers for longitude and latitude
 pub type LonLatBounds = BBox<f64>;
 
+/// Use bounds as u64 for the tile index range
 pub type TileBounds = BBox<u64>;
 
 /// 1: points, 2: lines, 3: polys, 4: points3D, 5: lines3D, 6: polys3D
@@ -165,15 +165,23 @@ pub type LayersMetaData = BTreeMap<String, LayerMetaData>;
 /// Tilestats is simply a tracker to see where most of the tiles live
 #[derive(Debug, Default, Clone, PartialEq)]
 pub struct TileStatsMetadata {
+    /// total number of tiles
     pub total: u64,
+    /// number of tiles for face 0
     pub total_0: u64,
+    /// number of tiles for face 1
     pub total_1: u64,
+    /// number of tiles for face 2
     pub total_2: u64,
+    /// number of tiles for face 3
     pub total_3: u64,
+    /// number of tiles for face 4
     pub total_4: u64,
+    /// number of tiles for face 5
     pub total_5: u64,
 }
 impl TileStatsMetadata {
+    /// Access the total number of tiles for a given face
     pub fn get(&self, face: Face) -> u64 {
         match face {
             Face::Face0 => self.total_0,
@@ -185,6 +193,7 @@ impl TileStatsMetadata {
         }
     }
 
+    /// Increment the total number of tiles for a given face and also the grand total
     pub fn increment(&mut self, face: Face) {
         match face {
             Face::Face0 => self.total_0 += 1,
@@ -206,14 +215,21 @@ pub type Attributions = BTreeMap<String, String>;
 #[derive(Debug, Default, Clone, PartialEq)]
 pub struct FaceBounds {
     // facesbounds[face][zoom] = [...]
+    /// Tile bounds for face 0 at each zoom
     pub face0: BTreeMap<u8, TileBounds>,
+    /// Tile bounds for face 1 at each zoom
     pub face1: BTreeMap<u8, TileBounds>,
+    /// Tile bounds for face 2 at each zoom
     pub face2: BTreeMap<u8, TileBounds>,
+    /// Tile bounds for face 3 at each zoom
     pub face3: BTreeMap<u8, TileBounds>,
+    /// Tile bounds for face 4 at each zoom
     pub face4: BTreeMap<u8, TileBounds>,
+    /// Tile bounds for face 5 at each zoom
     pub face5: BTreeMap<u8, TileBounds>,
 }
 impl FaceBounds {
+    /// Access the tile bounds for a given face and zoom
     pub fn get(&self, face: Face) -> &BTreeMap<u8, TileBounds> {
         match face {
             Face::Face0 => &self.face0,
@@ -225,6 +241,7 @@ impl FaceBounds {
         }
     }
 
+    /// Access the mutable tile bounds for a given face and zoom
     pub fn get_mut(&mut self, face: Face) -> &mut BTreeMap<u8, TileBounds> {
         match face {
             Face::Face0 => &mut self.face0,
@@ -244,10 +261,15 @@ pub type WMBounds = BTreeMap<u8, TileBounds>;
 /// Check the source type of the layer
 #[derive(Debug, Default, Clone, PartialEq)]
 pub enum SourceType {
+    /// Vector data
     #[default] Vector,
+    /// Json data
     Json,
+    /// Raster data
     Raster,
+    /// Raster DEM data
     RasterDem,
+    /// Sensor data
     Sensor,
 }
 impl From<&str> for SourceType {
@@ -266,9 +288,13 @@ impl From<&str> for SourceType {
 /// Store the encoding of the data
 #[derive(Debug, Default, Clone, PartialEq)]
 pub enum Encoding {
+    /// Gzip encoding
     Gzip,
+    /// Brotli encoding
     Brotli,
+    /// Zstd encoding
     Zstd,
+    /// No encoding
     #[default] None,
 }
 impl From<u8> for Encoding {
@@ -315,9 +341,13 @@ impl From<&str> for Encoding {
 /// Old spec tracks basic vector data
 #[derive(Debug, Default, Clone, PartialEq)]
 pub struct VectorLayer {
+    /// The id of the layer
     pub id: String,
+    /// The description of the layer
     pub description: Option<String>,
+    /// The min zoom of the layer
     pub minzoom: Option<u8>,
+    /// The max zoom of the layer
     pub maxzoom: Option<u8>,
 }
 
@@ -327,10 +357,15 @@ pub struct VectorLayer {
 /// TMS is an oudated version that is not supported by s2maps-gpu
 #[derive(Debug, Default, Clone, PartialEq)]
 pub enum Scheme {
+    /// The default scheme with faces (S2)
     #[default] Fzxy,
+    /// The time sensitive scheme with faces (S2)
     Tfzxy,
+    /// The basic scheme (Web Mercator)
     Xyz,
+    /// The time sensitive basic scheme (Web Mercator)
     Txyz,
+    /// The TMS scheme
     Tms,
 }
 impl From<&str> for Scheme {
@@ -359,8 +394,11 @@ impl From<Scheme> for String {
 /// Store where the center of the data lives
 #[derive(Debug, Default, Clone, PartialEq)]
 pub struct Center {
+    /// The longitude of the center
     pub lon: f64,
+    /// The latitude of the center
     pub lat: f64,
+    /// The zoom of the center
     pub zoom: u8,
 }
 
@@ -483,11 +521,6 @@ impl MetadataBuilder {
     /// Set the encoding of the data. [default=none]
     pub fn set_encoding(&mut self, encoding: Encoding) {
         self.metadata.encoding = encoding;
-    }
-
-    /// Set the minzoom
-    pub fn set_minzoom(&mut self, minzoom: u8) {
-        self.metadata.minzoom = minzoom;
     }
 
     /// add an attribution
@@ -616,9 +649,9 @@ mod tests {
 
         // as you build tiles, add the tiles metadata:
         // WM:
-        meta_builder.add_tile_wm(0, 0, 0, &BBox{ left: -60.0, bottom: -20.0, right: 5.0, top: 60.0 });
+        meta_builder.add_tile_wm(0, 0, 0, &LonLatBounds{ left: -60.0, bottom: -20.0, right: 5.0, top: 60.0 });
         // S2:
-        meta_builder.add_tile_s2(Face::Face1, 5, 22, 37, &BBox { left: -120.0, bottom: -7.0, right: 44.0, top: 72.0 });
+        meta_builder.add_tile_s2(Face::Face1, 5, 22, 37, &LonLatBounds { left: -120.0, bottom: -7.0, right: 44.0, top: 72.0 });
 
         // finally to get the resulting metadata:
         let resulting_metadata: Metadata = meta_builder.commit();
@@ -634,13 +667,13 @@ mod tests {
                 ("OpenStreetMap".into(), "https://www.openstreetmap.org/copyright/".into()),
             ]),
             bounds: BTreeMap::from([
-                (0, BBox { left: 0, bottom: 0, right: 0, top: 0 }),
+                (0, TileBounds { left: 0, bottom: 0, right: 0, top: 0 }),
             ]),
             faces: Vec::from(&[Face::Face0, Face::Face1]),
             facesbounds: FaceBounds {
                 face0: BTreeMap::new(),
                 face1: BTreeMap::from([
-                    (5, BBox { left: 22, bottom: 37, right: 22, top: 37 }),
+                    (5, TileBounds { left: 22, bottom: 37, right: 22, top: 37 }),
                 ]),
                 face2: BTreeMap::new(),
                 face3: BTreeMap::new(),

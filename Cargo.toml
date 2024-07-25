@@ -1,6 +1,6 @@
 [package]
 name = "s2-tilejson"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 authors = ["Craig O'Connor <oconnorct1@gmail.com>"]
 description = "Backwards compatible JSON format for describing s2 map tilesets."
@@ -23,11 +23,16 @@ exclude = [
     "/tools",
     "/src",
     ".github",
-    ".helix"
+    ".helix",
+    "bin/dummy.rs",
 ]
 
+[[bin]]
+name = "dummy"
+path = "bin/dummy.rs"
+
 [lib]
-name = "rust"
+name = "s2_tilejson"
 path = "rust/lib.rs"
 bench = true
 
@@ -35,9 +40,9 @@ bench = true
 
 [dependencies]
 serde = { version = "1.0", default-features = false, features = ["alloc", "derive"] }
+serde_json = { version = "1.0", default-features = false, features = ["alloc"] }
 
 [dev-dependencies]
-serde_json = { version = "1.0", default-features = false, features = ["alloc"] }
 
 [profile.bench]
 opt-level = "z"
