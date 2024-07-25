@@ -5,7 +5,14 @@ export type Face = 0 | 1 | 2 | 3 | 4 | 5;
 export type BBox = [left: number, bottom: number, right: number, top: number];
 
 /** 1: points, 2: lines, 3: polys, 4: points3D, 5: lines3D, 6: polys3D */
-export type DrawType = 1 | 2 | 3 | 4 | 5 | 6;
+export enum DrawType {
+  Points = 1,
+  Lines = 2,
+  Polys = 3,
+  Points3D = 4,
+  Lines3D = 5,
+  Polys3D = 6,
+}
 
 //? Shapes exist solely to deconstruct and rebuild objects.
 //?
@@ -274,13 +281,18 @@ export class MetadataBuilder {
    * @param layer - layer metadata
    */
   addLayer(name: string, layer: LayerMetaData) {
+    // add layer
     this.#metadata.layers[name] = layer;
+    // add vector layer
     this.#metadata.vector_layers?.push({
       id: name,
       description: layer.description,
       minzoom: layer.minzoom,
       maxzoom: layer.maxzoom,
     });
+    // update minzoom and maxzoom
+    if (layer.minzoom < this.#metadata.minzoom) this.#metadata.minzoom = layer.minzoom;
+    if (layer.maxzoom > this.#metadata.maxzoom) this.#metadata.maxzoom = layer.maxzoom;
   }
 
   /**
@@ -326,9 +338,9 @@ export class MetadataBuilder {
     const { minzoom, maxzoom } = this.#metadata;
     const [minlon, minlat, maxlon, maxlat] = this.#lonLatBounds;
     this.#metadata.center = {
-      lon: (minlon + maxlon) / 2,
-      lat: (minlat + maxlat) / 2,
-      zoom: (minzoom + maxzoom) / 2,
+      lon: (minlon + maxlon) >> 1,
+      lat: (minlat + maxlat) >> 1,
+      zoom: (minzoom + maxzoom) >> 1,
     };
   }
 

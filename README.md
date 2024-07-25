@@ -101,9 +101,9 @@ If you'd like to validate the shape, feel free to use the [Ajv](https://github.c
 
 ```ts
 import Ajv from 'ajv';
-import { ShapeSchema } from 'open-vector-tile'; // Path to the schema
+import { ShapeSchema } from 's2-tilejson'; // Path to the schema
 
-import type { Shape } from 'open-vector-tile';
+import type { Shape } from 's2-tilejson';
 
 const ajv = new Ajv();
 const validate = ajv.compile(ShapeSchema);

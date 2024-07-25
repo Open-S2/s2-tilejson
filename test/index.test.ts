@@ -1,7 +1,8 @@
+import { DrawType } from '../src';
 import { MetadataBuilder } from '../src';
 import { expect, test } from 'bun:test';
 
-import type { BBox, LayerMetaData, Metadata, Shape } from '../src';
+import type { LayerMetaData, Metadata, Shape } from '../src';
 
 test('basic metadata', () => {
   const metaBuilder = new MetadataBuilder();
@@ -33,12 +34,10 @@ test('basic metadata', () => {
   };
   metaBuilder.addLayer('water_lines', layer);
 
-  // as you build tiles, add the tiles metadata:
-  const lonLatBoundsForTile: BBox = [-120, -7, 44, 72];
   // WM:
   metaBuilder.addTileWM(0, 0, 0, [-60, -20, 5, 60]);
   // S2:
-  metaBuilder.addTileS2(1, 5, 22, 37, lonLatBoundsForTile);
+  metaBuilder.addTileS2(1, 5, 22, 37, [-120, -7, 44, 72]);
 
   // finally to get the resulting metadata:
   const resultingMetadata: Metadata = metaBuilder.commit();
@@ -53,7 +52,7 @@ test('basic metadata', () => {
     center: {
       lat: 26,
       lon: -38,
-      zoom: NaN,
+      zoom: 6,
     },
     description: 'A free editable map of the whole world.',
     encoding: 'none',
@@ -70,7 +69,7 @@ test('basic metadata', () => {
     },
     layers: {
       water_lines: {
-        drawTypes: [2],
+        drawTypes: [DrawType.Lines],
         mShape: undefined,
         maxzoom: 13,
         minzoom: 0,
@@ -84,8 +83,8 @@ test('basic metadata', () => {
         },
       },
     },
-    maxzoom: -Infinity,
-    minzoom: Infinity,
+    maxzoom: 13,
+    minzoom: 0,
     name: 'OSM',
     s2tilejson: '1.0.0',
     scheme: 'fzxy',

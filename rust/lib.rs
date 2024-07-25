@@ -4,6 +4,10 @@
 
 extern crate alloc;
 
+use core::u64;
+
+use serde::{Serialize, Deserialize};
+
 use alloc::borrow::ToOwned;
 use alloc::collections::BTreeSet;
 use alloc::collections::BTreeMap;
@@ -13,11 +17,17 @@ use alloc::vec::Vec;
 /// S2 Face
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Face {
+    /// Face 0
     Face0 = 0,
+    /// Face 1
     Face1 = 1,
+    /// Face 2
     Face2 = 2,
+    /// Face 3
     Face3 = 3,
+    /// Face 4
     Face4 = 4,
+    /// Face 5
     Face5 = 5,
 }
 impl From<Face> for u8 {
@@ -40,21 +50,35 @@ impl From<u8> for Face {
 
 /// The Bounding box, whether the tile bounds or lon-lat bounds or whatever.
 #[derive(Copy, Clone, Debug, PartialEq, PartialOrd)]
-pub struct BBox {
-    pub left: f64,
-    pub bottom: f64,
-    pub right: f64,
-    pub top: f64,
+pub struct BBox<T> {
+    /// left most point; Also represents the left-most longitude
+    pub left: T,
+    /// bottom most point; Also represents the bottom-most latitude
+    pub bottom: T,
+    /// right most point; Also represents the right-most longitude
+    pub right: T,
+    /// top most point; Also represents the top-most latitude
+    pub top: T,
 }
+
+pub type LonLatBounds = BBox<f64>;
+
+pub type TileBounds = BBox<u64>;
 
 /// 1: points, 2: lines, 3: polys, 4: points3D, 5: lines3D, 6: polys3D
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum DrawType {
+    /// Collection of points
     Points = 1,
+    /// Collection of lines
     Lines = 2,
+    /// Collection of polygons
     Polygons = 3,
+    /// Collection of 3D points
     Points3D = 4,
+    /// Collection of 3D lines
     Lines3D = 5,
+    /// Collection of 3D polygons
     Polygons3D = 6,
 }
 
@@ -69,35 +93,50 @@ pub enum DrawType {
 // The interfaces below help describe how shapes are built by the user.
 
 /// Primitive types that can be found in a shape
-#[derive(Debug, Clone, PartialEq)]
-pub enum PrimitiveShapes {
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[serde(rename_all = "lowercase")]
+pub enum PrimitiveShape {
+    /// 'string'
     String,
+    /// number 'f32'
     F32,
+    /// number 'f64'
     F64,
+    /// number 'u64'
     U64,
+    /// number 'i64'
     I64,
+    /// 'true' or 'false'
     Bool,
+    /// 'null'
     Null,
 }
 
 /// The Shape Object But the values can only be primitives
-pub type ShapePrimitive = BTreeMap<String, PrimitiveShapes>;
+pub type ShapePrimitive = BTreeMap<String, PrimitiveShape>;
 
 /// Arrays may contain either a primitive or an object whose values are primitives
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[serde(untagged)]
 pub enum ShapePrimitiveType {
-    Primitive(PrimitiveShapes),
-    Object(ShapePrimitive),
+    /// Primitive type
+    Primitive(PrimitiveShape),
+    /// Nested shape that can only contain primitives
+    NestedPrimitive(ShapePrimitive),
 }
 
 /// Shape types that can be found in a shapes object.
 /// Either a primitive, an array containing any type, or a nested shape.
 /// If the type is an array, all elements must be the same type
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[serde(untagged)]
 pub enum ShapeType {
-    Primitive(PrimitiveShapes),
+    /// Primitive type
+    Primitive(PrimitiveShape),
+    /// Nested shape that can only contain primitives
     Array(Vec<ShapePrimitiveType>),
-    NestedShape(Shape),
+    /// Nested shape
+    Nested(Shape),
 }
 
 /// The Shape Object
@@ -106,11 +145,17 @@ pub type Shape = BTreeMap<String, ShapeType>;
 /// Each layer has metadata associated with it. Defined as blueprints pre-construction of vector data.
 #[derive(Debug, Default, Clone, PartialEq)]
 pub struct LayerMetaData {
+    /// The description of the layer
     pub description: Option<String>,
+    /// the lowest zoom level at which the layer is available
     pub minzoom: u8,
+    /// the highest zoom level at which the layer is available
     pub maxzoom: u8,
+    /// The draw types that can be found in this layer
     pub draw_types: Vec<DrawType>,
+    /// The shape that can be found in this layer
     pub shape: Shape,
+    /// The shape used inside features that can be found in this layer
     pub m_shape: Option<Shape>,
 }
 
@@ -118,7 +163,7 @@ pub struct LayerMetaData {
 pub type LayersMetaData = BTreeMap<String, LayerMetaData>;
 
 /// Tilestats is simply a tracker to see where most of the tiles live
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, PartialEq)]
 pub struct TileStatsMetadata {
     pub total: u64,
     pub total_0: u64,
@@ -140,7 +185,7 @@ impl TileStatsMetadata {
         }
     }
 
-    pub fn update(&mut self, face: Face) {
+    pub fn increment(&mut self, face: Face) {
         match face {
             Face::Face0 => self.total_0 += 1,
             Face::Face1 => self.total_1 += 1,
@@ -158,18 +203,18 @@ impl TileStatsMetadata {
 pub type Attributions = BTreeMap<String, String>;
 
 /// Track the S2 tile bounds of each face and zoom
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, PartialEq)]
 pub struct FaceBounds {
     // facesbounds[face][zoom] = [...]
-    pub face0: BTreeMap<u8, BBox>,
-    pub face1: BTreeMap<u8, BBox>,
-    pub face2: BTreeMap<u8, BBox>,
-    pub face3: BTreeMap<u8, BBox>,
-    pub face4: BTreeMap<u8, BBox>,
-    pub face5: BTreeMap<u8, BBox>,
+    pub face0: BTreeMap<u8, TileBounds>,
+    pub face1: BTreeMap<u8, TileBounds>,
+    pub face2: BTreeMap<u8, TileBounds>,
+    pub face3: BTreeMap<u8, TileBounds>,
+    pub face4: BTreeMap<u8, TileBounds>,
+    pub face5: BTreeMap<u8, TileBounds>,
 }
 impl FaceBounds {
-    pub fn get(&self, face: Face) -> &BTreeMap<u8, BBox> {
+    pub fn get(&self, face: Face) -> &BTreeMap<u8, TileBounds> {
         match face {
             Face::Face0 => &self.face0,
             Face::Face1 => &self.face1,
@@ -180,7 +225,7 @@ impl FaceBounds {
         }
     }
 
-    pub fn get_mut(&mut self, face: Face) -> &mut BTreeMap<u8, BBox> {
+    pub fn get_mut(&mut self, face: Face) -> &mut BTreeMap<u8, TileBounds> {
         match face {
             Face::Face0 => &mut self.face0,
             Face::Face1 => &mut self.face1,
@@ -194,10 +239,10 @@ impl FaceBounds {
 
 /// Track the WM tile bounds of each zoom
 /// `[zoom: number]: BBox`
-pub type WMBounds = BTreeMap<u8, BBox>;
+pub type WMBounds = BTreeMap<u8, TileBounds>;
 
 /// Check the source type of the layer
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, PartialEq)]
 pub enum SourceType {
     #[default] Vector,
     Json,
@@ -205,9 +250,21 @@ pub enum SourceType {
     RasterDem,
     Sensor,
 }
+impl From<&str> for SourceType {
+    fn from(source_type: &str) -> Self {
+        match source_type {
+            "vector" => SourceType::Vector,
+            "json" => SourceType::Json,
+            "raster" => SourceType::Raster,
+            "raster-dem" => SourceType::RasterDem,
+            "sensor" => SourceType::Sensor,
+            _ => SourceType::Vector,
+        }
+    }
+}
 
 /// Store the encoding of the data
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, PartialEq)]
 pub enum Encoding {
     Gzip,
     Brotli,
@@ -244,9 +301,9 @@ impl From<Encoding> for String {
         }
     }
 }
-impl From<String> for Encoding {
-    fn from(encoding: String) -> Self {
-        match encoding.as_str() {
+impl From<&str> for Encoding {
+    fn from(encoding: &str) -> Self {
+        match encoding {
             "gzip" => Encoding::Gzip,
             "br" => Encoding::Brotli,
             "zstd" => Encoding::Zstd,
@@ -256,7 +313,7 @@ impl From<String> for Encoding {
 }
 
 /// Old spec tracks basic vector data
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, PartialEq)]
 pub struct VectorLayer {
     pub id: String,
     pub description: Option<String>,
@@ -268,7 +325,7 @@ pub struct VectorLayer {
 /// Default Web Mercator tile scheme is `xyz`
 /// Adding a t prefix to the scheme will change the request to be time sensitive
 /// TMS is an oudated version that is not supported by s2maps-gpu
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, PartialEq)]
 pub enum Scheme {
     #[default] Fzxy,
     Tfzxy,
@@ -276,9 +333,9 @@ pub enum Scheme {
     Txyz,
     Tms,
 }
-impl From<String> for Scheme {
-    fn from(scheme: String) -> Self {
-        match scheme.as_str() {
+impl From<&str> for Scheme {
+    fn from(scheme: &str) -> Self {
+        match scheme {
             "fzxy" => Scheme::Fzxy,
             "tfzxy" => Scheme::Tfzxy,
             "xyz" => Scheme::Xyz,
@@ -300,7 +357,7 @@ impl From<Scheme> for String {
 }
 
 /// Store where the center of the data lives
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, PartialEq)]
 pub struct Center {
     pub lon: f64,
     pub lat: f64,
@@ -308,7 +365,7 @@ pub struct Center {
 }
 
 /// Metadata for the tile data
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Metadata {
     /// The version of the s2-tilejson spec
     pub s2tilejson: String,
@@ -361,7 +418,7 @@ impl Default for Metadata {
             minzoom: 0,
             maxzoom: 27,
             center: Center::default(),
-            attributions: BTreeMap::default(),
+            attributions: BTreeMap::new(),
             layers: LayersMetaData::default(),
             tilestats: TileStatsMetadata::default(),
             vector_layers: Vec::new(),
@@ -372,7 +429,7 @@ impl Default for Metadata {
 /// Builder for the metadata
 #[derive(Debug, Clone)]
 pub struct MetadataBuilder {
-    lon_lat_bounds: BBox,
+    lon_lat_bounds: LonLatBounds,
     faces: BTreeSet<Face>,
     metadata: Metadata,
 }
@@ -386,6 +443,7 @@ impl Default for MetadataBuilder {
     }
 }
 impl MetadataBuilder {
+    /// Commit the metadata and take ownership
     pub fn commit(&mut self) -> Metadata {
         // set the center
         self.update_center();
@@ -433,8 +491,8 @@ impl MetadataBuilder {
     }
 
     /// add an attribution
-    pub fn add_attribution(&mut self, display_name: String, href: String) {
-        self.metadata.attributions.insert(display_name, href);
+    pub fn add_attribution(&mut self, display_name: &str, href: &str) {
+        self.metadata.attributions.insert(display_name.into(), href.into());
     }
 
     /// Add the layer metadata
@@ -449,10 +507,13 @@ impl MetadataBuilder {
                 maxzoom: Some(layer.maxzoom),
             });
         }
+        // update minzoom and maxzoom
+        if layer.minzoom < self.metadata.minzoom { self.metadata.minzoom = layer.minzoom; }
+        if layer.maxzoom > self.metadata.maxzoom { self.metadata.maxzoom = layer.maxzoom; }
     }
 
     /// Add the WM tile metadata
-    pub fn add_tile_wm(&mut self, zoom: u8, x: u32, y: u32, ll_bounds: &BBox) {
+    pub fn add_tile_wm(&mut self, zoom: u8, x: u32, y: u32, ll_bounds: &LonLatBounds) {
         self.metadata.tilestats.total += 1;
         self.faces.insert(Face::Face0);
         self.add_bounds_wm(zoom, x, y);
@@ -460,8 +521,8 @@ impl MetadataBuilder {
     }
 
     /// Add the S2 tile metadata
-    pub fn add_tile_s2(&mut self, face: Face, zoom: u8, x: u32, y: u32, ll_bounds: &BBox) {
-        self.metadata.tilestats.update(face);
+    pub fn add_tile_s2(&mut self, face: Face, zoom: u8, x: u32, y: u32, ll_bounds: &LonLatBounds) {
+        self.metadata.tilestats.increment(face);
         self.faces.insert(face);
         self.add_bounds_s2(face, zoom, x, y);
         self.update_lon_lat_bounds(ll_bounds);
@@ -473,15 +534,15 @@ impl MetadataBuilder {
         let BBox { left, bottom, right, top } = self.lon_lat_bounds;
         self.metadata.center.lon = (left + right) / 2.0;
         self.metadata.center.lat = (bottom + top) / 2.0;
-        self.metadata.center.zoom = (minzoom + maxzoom) / 2;
+        self.metadata.center.zoom = (minzoom + maxzoom) >> 1;
     }
 
     /// Add the bounds of the tile for WM data
     fn add_bounds_wm(&mut self, zoom: u8, x: u32, y: u32) {
-        let x = x as f64;
-        let y = y as f64;
+        let x = x as u64;
+        let y = y as u64;
         let bbox = self.metadata.bounds.entry(zoom).or_insert(BBox{ 
-            left: f64::INFINITY, bottom: f64::INFINITY, right: -f64::INFINITY, top: -f64::INFINITY
+            left: u64::MAX, bottom: u64::MAX, right: 0, top: 0
         });
         
         bbox.left = bbox.left.min(x);
@@ -492,10 +553,10 @@ impl MetadataBuilder {
 
     /// Add the bounds of the tile for S2 data
     fn add_bounds_s2(&mut self, face: Face, zoom: u8, x: u32, y: u32) {
-        let x = x as f64;
-        let y = y as f64;
+        let x = x as u64;
+        let y = y as u64;
         let bbox = self.metadata.facesbounds.get_mut(face).entry(zoom).or_insert(BBox{ 
-            left: f64::INFINITY, bottom: f64::INFINITY, right: -f64::INFINITY, top: -f64::INFINITY
+            left: u64::MAX, bottom: u64::MAX, right: 0, top: 0
         });
         
         bbox.left = bbox.left.min(x);
@@ -505,17 +566,12 @@ impl MetadataBuilder {
     }
 
     /// Update the lon-lat bounds so eventually we can find the center point of the data
-    fn update_lon_lat_bounds(&mut self, ll_bounds: &BBox) {
+    fn update_lon_lat_bounds(&mut self, ll_bounds: &LonLatBounds) {
         self.lon_lat_bounds.left = ll_bounds.left.min(self.lon_lat_bounds.left);
         self.lon_lat_bounds.bottom = ll_bounds.bottom.min(self.lon_lat_bounds.bottom);
         self.lon_lat_bounds.right = ll_bounds.right.max(self.lon_lat_bounds.right);
         self.lon_lat_bounds.top = ll_bounds.top.max(self.lon_lat_bounds.top);
     }
-}
-
-/// Add two usize numbers into one
-pub fn add(left: usize, right: usize) -> usize {
-    left + right
 }
 
 #[cfg(test)]
@@ -524,10 +580,102 @@ mod tests {
 
     #[test]
     fn it_works() {
-        let result = add(1, 2);
-        let result2 = add(1, 1);
+        let mut meta_builder = MetadataBuilder::default();
 
-        assert_eq!(result, 3);
-        assert_eq!(result2, 2);
+
+        // on initial use be sure to update basic metadata:
+        meta_builder.set_name("OSM".into());
+        meta_builder.set_description("A free editable map of the whole world.".into());
+        meta_builder.set_version("1.0.0".into());
+        meta_builder.set_scheme("fzxy".into()); // 'fzxy' | 'tfzxy' | 'xyz' | 'txyz' | 'tms'
+        meta_builder.set_type("vector".into()); // 'vector' | 'json' | 'raster' | 'raster-dem' | 'sensor' | 'markers'
+        meta_builder.set_encoding("none".into()); // 'gz' | 'br' | 'none'
+        meta_builder.add_attribution("OpenStreetMap", "https://www.openstreetmap.org/copyright/");
+
+        // Vector Specific: add layers based on how you want to parse data from a source:
+        let shape_str = r#"
+        {
+            "class": "string",
+            "offset": "f64",
+            "info": {
+                "name": "string",
+                "value": "i64"
+            }
+        }
+        "#;
+        let shape: Shape = serde_json::from_str(shape_str).unwrap_or_else(|e| panic!("ERROR: {}", e));
+        let layer = LayerMetaData {
+            minzoom: 0,
+            maxzoom: 13,
+            description: Some("water_lines".into()),
+            draw_types: Vec::from(&[DrawType::Lines]),
+            shape: shape.clone(),
+            m_shape: None,
+        };
+        meta_builder.add_layer("water_lines", &layer);
+
+        // as you build tiles, add the tiles metadata:
+        // WM:
+        meta_builder.add_tile_wm(0, 0, 0, &BBox{ left: -60.0, bottom: -20.0, right: 5.0, top: 60.0 });
+        // S2:
+        meta_builder.add_tile_s2(Face::Face1, 5, 22, 37, &BBox { left: -120.0, bottom: -7.0, right: 44.0, top: 72.0 });
+
+        // finally to get the resulting metadata:
+        let resulting_metadata: Metadata = meta_builder.commit();
+
+        assert_eq!(resulting_metadata, Metadata {
+            name: "OSM".into(),
+            description: "A free editable map of the whole world.".into(),
+            version: "1.0.0".into(),
+            scheme: "fzxy".into(),
+            type_: "vector".into(),
+            encoding: "none".into(),
+            attributions: BTreeMap::from([
+                ("OpenStreetMap".into(), "https://www.openstreetmap.org/copyright/".into()),
+            ]),
+            bounds: BTreeMap::from([
+                (0, BBox { left: 0, bottom: 0, right: 0, top: 0 }),
+            ]),
+            faces: Vec::from(&[Face::Face0, Face::Face1]),
+            facesbounds: FaceBounds {
+                face0: BTreeMap::new(),
+                face1: BTreeMap::from([
+                    (5, BBox { left: 22, bottom: 37, right: 22, top: 37 }),
+                ]),
+                face2: BTreeMap::new(),
+                face3: BTreeMap::new(),
+                face4: BTreeMap::new(),
+                face5: BTreeMap::new(),
+            },
+            minzoom: 0,
+            maxzoom: 13,
+            center: Center { lon: -38.0, lat: 26.0, zoom: 6 },
+            tilestats: TileStatsMetadata {
+                total: 2,
+                total_0: 0,
+                total_1: 1,
+                total_2: 0,
+                total_3: 0,
+                total_4: 0,
+                total_5: 0,
+            },
+            layers: BTreeMap::from([("water_lines".into(), LayerMetaData{
+                description: Some("water_lines".into()),
+                minzoom: 0,
+                maxzoom: 13,
+                draw_types: Vec::from(&[DrawType::Lines]),
+                shape: BTreeMap::from([
+                    ("class".into(), ShapeType::Primitive(PrimitiveShape::String)),
+                    ("offset".into(), ShapeType::Primitive(PrimitiveShape::F64)),
+                    ("info".into(), ShapeType::Nested(BTreeMap::from([
+                        ("name".into(), ShapeType::Primitive(PrimitiveShape::String)),
+                        ("value".into(), ShapeType::Primitive(PrimitiveShape::I64)),
+                    ]))),
+                ]),
+                m_shape: None,
+            })]),
+            s2tilejson: "1.0.0".into(),
+            vector_layers: Vec::from([VectorLayer { id: "water_lines".into(), description: Some("water_lines".into()), minzoom: Some(0), maxzoom: Some(13) }]),
+        });
     }
 }
