@@ -1,7 +1,7 @@
 {
   "name": "s2-tilejson",
-  "version": "1.0.0",
-  "description": "JSON format for describing s2 map tilesets.",
+  "version": "1.1.0",
+  "description": "Backwards compatible JSON format for describing s2 map tilesets.",
   "type": "module",
   "keywords": [
     "tilejson",
@@ -53,6 +53,7 @@
     "@types/bun": "^1.1.1",
     "@types/node": "^20.12.11",
     "@types/pbf": "^3.0.5",
+    "ajv": "^8.16.0",
     "coveralls": "^3.1.1",
     "eslint": "^9.3.0",
     "eslint-config-prettier": "^9.1.0",

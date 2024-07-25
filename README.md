@@ -33,7 +33,7 @@
 
 ## About
 
-TileJSON is a mostly [backwards-compatible](https://github.com/mapbox/tilejson-spec) open standard for representing map metadata.
+TileJSON is a mostly [backwards-compatible](https://github.com/mapbox/tilejson-spec) open standard for representing map tile metadata.
 
 ## Install
 
@@ -91,6 +91,38 @@ metaBuilder.addTileS2(face, zoom, x, y, lonLatBoundsForTile)
 
 // finally to get the resulting metadata:
 const metadata: Metadata = metaBuilder.commit()
+```
+
+### Creating and Validating your Shapes
+
+Shapes define the type of data that can be stored in the vector tile. They are explained in the [specification](https://github.com/Open-S2/open-vector-tile/tree/master/vector-tile-spec/1.0.0#44-shapes).
+
+If you'd like to validate the shape, feel free to use the [Ajv](https://github.com/epoberezkin/ajv) library.
+
+```ts
+import Ajv from 'ajv';
+import { ShapeSchema } from 'open-vector-tile'; // Path to the schema
+
+import type { Shape } from 'open-vector-tile';
+
+const ajv = new Ajv();
+const validate = ajv.compile(ShapeSchema);
+
+const shape: Shape = {
+  a: 'i64',
+  b: ['string'],
+  c: {
+    d: 'f64',
+    e: 'bool',
+    f: 'null',
+    g: 'f32',
+    h: {
+      i: 'u64',
+    },
+  },
+};
+
+validate(shape); // true
 ```
 
 ---

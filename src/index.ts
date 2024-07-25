@@ -5,11 +5,46 @@ export type Face = 0 | 1 | 2 | 3 | 4 | 5;
 export type BBox = [left: number, bottom: number, right: number, top: number];
 
 /** 1: points, 2: lines, 3: polys, 4: points3D, 5: lines3D, 6: polys3D */
-export type DrawType = 1 | 2 | 3 | 4;
+export type DrawType = 1 | 2 | 3 | 4 | 5 | 6;
 
-/** A Shape is a definition of how to unpack properties data for a specific source layer. */
+//? Shapes exist solely to deconstruct and rebuild objects.
+//?
+//? Shape limitations:
+//? - all keys are strings.
+//? - all values are either:
+//? - - primitive types: strings, numbers (f32, f64, u64, i64), true, false, or null
+//? - - sub types: an array of a shape or a nested object which is itself a shape
+//? - - if the sub type is an array, ensure all elements are of the same type
+//? The interfaces below help describe how shapes are built by the user.
+
+import ShapeSchema from './shape.schema.json';
+export { ShapeSchema };
+
+/**
+ * Primitive types that can be found in a shape
+ */
+export type PrimitiveShapes = 'string' | 'f32' | 'f64' | 'u64' | 'i64' | 'bool' | 'null';
+
+/** The Shape Object But the values can only be primitives */
+export interface ShapePrimitive {
+  [key: string]: PrimitiveShapes;
+}
+
+/**
+ * Arrays may contain either a primitive or an object whose values are primitives
+ */
+export type ShapePrimitiveType = PrimitiveShapes | ShapePrimitive;
+
+/**
+ * Shape types that can be found in a shapes object.
+ * Either a primitive, an array containing any type, or a nested shape.
+ * If the type is an array, all elements must be the same type
+ */
+export type ShapeType = PrimitiveShapes | [ShapePrimitiveType] | Shape;
+
+/** The Shape Object */
 export interface Shape {
-  [shapeName: string]: Shape | Array<Shape> | 'null' | 'bool' | 'string' | 'u64' | 'i64' | 'f64';
+  [key: string]: ShapeType;
 }
 
 /** Each layer has metadata associated with it. Defined as blueprints pre-construction of vector data. */
@@ -115,9 +150,11 @@ export interface Metadata {
   minzoom: number;
   /** maxzoom at which to request tiles. [default=27] */
   maxzoom: number;
+  /** The center of the data */
   center: Center;
   /** { ['human readable string']: 'href' } */
   attributions: { [name: string]: string };
+  /** Track layer metadata */
   layers: LayersMetaData;
   /** Track tile stats for each face and total overall */
   tilestats: TileStatsMetadata;

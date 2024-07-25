@@ -3,7 +3,7 @@ name = "s2-tilejson"
 version = "0.1.0"
 edition = "2021"
 authors = ["Craig O'Connor <oconnorct1@gmail.com>"]
-description = "Triangle mesh designed to be fast, efficient, and sphere capable."
+description = "Backwards compatible JSON format for describing s2 map tilesets."
 documentation = "https://docs.rs/s2-tilejson"
 homepage = "https://github.com/OpenS2/s2-tilejson"
 repository = "https://github.com/OpenS2/s2-tilejson"
@@ -16,6 +16,8 @@ license = "MIT"
 exclude = [
     "/assets",
     "/benchmarks",
+    "/coverage",
+    "/dist",
     "/docs",
     "/test",
     "/tools",
