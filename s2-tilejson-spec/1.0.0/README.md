@@ -2,7 +2,7 @@
 
 The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "SHOULD NOT", "RECOMMENDED", "MAY", and "OPTIONAL" in this document are to be interpreted as described in [RFC 2119](https://tools.ietf.org/html/rfc2119).
 
-**Table of contents**
+## Table of contents
 
 1. [Purpose](#1-purpose)
 1. [File format](#2-file-format)
@@ -24,24 +24,25 @@ The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "S
    1. [scheme](#315-scheme)
    1. [layers](#316-layers)
    1. [version](#317-version)
+   1. [tilestats](#318-tilestats)
 1. [Examples](#4-examples)
 1. [Caching](#5-caching)
 
-# 1. Purpose
+## 1. Purpose
 
 This specification attempts to create a standard for representing metadata about multiple types of web-based map layers, to aid clients in configuration and browsing.
 
-# 2. File Format
+## 2. File Format
 
 S2-TileJSON manifest files use the JSON format as described in [RFC 8259](https://tools.ietf.org/html/rfc8259).
 
-# 3. Structure
+## 3. Structure
 
 The following describes the structure of a S2-TileJSON object. Implementations MUST treat unknown keys as if they weren't present. However, implementations MUST expose unknown key value pairs so users can optionally handle these keys. Implementations MUST treat invalid values for keys as if they were not present. If the key is optional and the value is invalid, the default value MAY be applied. If the key is required, implementations MUST treat the entire S2-TileJSON manifest file as invalid and refuse operation.
 
 *The word "implementation" in the following sections refers to services or tools that serve, generate, or validate S2-TileJSON objects.*
 
-## 3.1 `s2-tilejson`
+### 3.1 `s2-tilejson`
 
 REQUIRED. String.
 
@@ -53,7 +54,7 @@ A semver.org style version number as a string. Describes the version of the S2-T
 }
 ```
 
-## 3.2 `interval`
+### 3.2 `interval`
 
 Optional. Number
 
@@ -65,7 +66,7 @@ The time interval in milliseconds each frame is.
 }
 ```
 
-## 3.3 `vector_layers`
+### 3.3 `vector_layers`
 
 REQUIRED (deprecated - see `layers`). Array<Object>.
 
@@ -134,9 +135,9 @@ These keys are used to describe the situation where different sets of vector lay
 }
 ```
 
-## 3.4 `attributions`
+### 3.4 `attribution`
 
-OPTIONAL. Object. Default: null.
+OPTIONAL. Object. Default: `null`.
 
 NOTICE: This is a breaking change from the [older tilejson specification](https://github.com/mapbox/tilejson-spec/blob/master/3.0.0/README.md#34-attribution).
 
@@ -144,16 +145,16 @@ Contains a map of attributions to be displayed when the map is shown to a user. 
 
 ```JSON
 {
-  "attributions": {
+  "attribution": {
     "OpenStreetMap": "https://www.openstreetmap.org/copyright/",
     "Open S2": "https://opens2.com/legal/attribution"
   }
 }
 ```
 
-## 3.5 `bounds`
+### 3.5 `bounds`
 
-OPTIONAL. Object. Default: {}.
+OPTIONAL. Object. Default: `{}`.
 
 NOTICE: This is a breaking change from the [older tilejson specification](https://github.com/mapbox/tilejson-spec/blob/master/3.0.0/README.md#34-attribution). Instead of tracking lon-lat bounds, it tracks tile bounds to help reduce the number of requests.
 
@@ -167,9 +168,9 @@ The maximum extent of available map tiles relative to the zoom. Each zoom has it
 },
 ```
 
-## 3.6 `center`
+### 3.6 `center`
 
-OPTIONAL. Array<Number>. Default: null.
+OPTIONAL. Array<Number>. Default: `null`.
 
 The first value is the longitude, the second is latitude (both in WGS:84 values), the third value is the zoom level as an integer. Longitude and latitude MUST be within the specified bounds. The zoom level MUST be between minzoom and maxzoom. Implementations MAY use this center value to set the default location. If the value is null, implementations MAY use their own algorithm for determining a default location.
 
@@ -183,9 +184,9 @@ The first value is the longitude, the second is latitude (both in WGS:84 values)
 }
 ```
 
-## 3.7 `faces`
+### 3.7 `faces`
 
-OPTIONAL. Array<numer>. Default: [].
+OPTIONAL. Array<Number>. Default: `[]`.
 
 This is an S2 specific key. An array of faces that the data interacts with. Face vaules MUST be within `[0-6)`.
 
@@ -195,9 +196,9 @@ This is an S2 specific key. An array of faces that the data interacts with. Face
 }
 ```
 
-## 3.8 `description`
+### 3.8 `description`
 
-OPTIONAL. String. Default: null.
+OPTIONAL. String. Default: `null`.
 
 A text description of the set of tiles. The description can contain any valid unicode character as described by the JSON specification [RFC 8259](https://tools.ietf.org/html/rfc8259).
 
@@ -207,9 +208,9 @@ A text description of the set of tiles. The description can contain any valid un
 }
 ```
 
-## 3.9 `fillzoom`
+### 3.9 `fillzoom`
 
-OPTIONAL. Integer. Default: null.
+OPTIONAL. Integer. Default: `null`.
 
 An integer specifying the zoom level from which to generate overzoomed tiles. Implementations MAY generate overzoomed tiles from parent tiles if the requested zoom level does not exist. In most cases, overzoomed tiles are generated from the maximum zoom level of the set of tiles. If fillzoom is specified, the overzoomed tile MAY be generated from the fillzoom level.
 
@@ -223,9 +224,9 @@ While TileJSON may specify rules for overzooming tiles, it is ultimately up to t
 }
 ```
 
-## 3.10 `facesbounds`
+### 3.10 `facesbounds`
 
-OPTIONAL. Object. Default: null.
+OPTIONAL. Object. Default: `null`.
 
 This is an S2 specific key. An object that maps each face to its bounds. The bounds are specified in the same format as the `bounds` property except that the starting key is a face number.
 
@@ -239,9 +240,9 @@ Much like how bounds are tracked, facebounds utilize the same format as bounds b
 }
 ```
 
-## 3.11 `legend`
+### 3.11 `legend`
 
-OPTIONAL. String. Default: null.
+OPTIONAL. String. Default: `null`.
 
 Contains a legend to be displayed with the map. Implementations MAY decide to treat this as HTML or literal text. For security reasons, make absolutely sure that this field can't be abused as a vector for XSS or beacon tracking.
 
@@ -251,9 +252,9 @@ Contains a legend to be displayed with the map. Implementations MAY decide to tr
 }
 ```
 
-## 3.12 `maxzoom`
+### 3.12 `maxzoom`
 
-OPTIONAL. Integer. Default: 30.
+OPTIONAL. Integer. Default: `30`.
 
 An integer specifying the maximum zoom level. MUST be in range: 0 <= minzoom <= maxzoom <= 30. A client or server MAY request tiles outside the zoom range, but the availability of these tiles is dependent on how the tile server or renderer handles the request (such as overzooming tiles).
 
@@ -263,9 +264,9 @@ An integer specifying the maximum zoom level. MUST be in range: 0 <= minzoom <= 
 }
 ```
 
-## 3.13 `minzoom`
+### 3.13 `minzoom`
 
-OPTIONAL. Integer. Default: 0.
+OPTIONAL. Integer. Default: `0`.
 
 An integer specifying the minimum zoom level. MUST be in range: 0 <= minzoom <= maxzoom <= 30.
 
@@ -275,9 +276,9 @@ An integer specifying the minimum zoom level. MUST be in range: 0 <= minzoom <= 
 }
 ```
 
-## 3.14 `name`
+### 3.14 `name`
 
-OPTIONAL. String. Default: null.
+OPTIONAL. String. Default: `null`.
 
 A name describing the set of tiles. The name can contain any legal character. Implementations SHOULD NOT interpret the name as HTML.
 
@@ -287,9 +288,9 @@ A name describing the set of tiles. The name can contain any legal character. Im
 }
 ```
 
-## 3.15 `scheme`
+### 3.15 `scheme`
 
-OPTIONAL. String. Default: "xyz".
+OPTIONAL. String. Default: `"xyz"`.
 
 Mercator: Either "xyz" or "txyz". The global-mercator (aka Spherical Mercator) profile is assumed. if a `t` is attached to the beginning of the xyz spec, the tiles are time based.
 
@@ -301,37 +302,37 @@ S2: May be "fzxy" or "tfzxy". This stands for `face`-`zoom`-`x`-`y`. If a `t` is
 }
 ```
 
-## 3.16 `layers`
+### 3.16 `layers`
 
 REQUIRED. Object. Default: `{}`.
 
 Designed to better support [open-vector-tile](https://github.com/Open-S2/open-vector-tile) data with `shape` types and the more complex nested objects.
 
-### 3.16.1 `key`
+#### 3.16.1 `key`
 
 The object key is the `name` of the layer.
 
-### 3.16.2 `value`
+#### 3.16.2 `value`
 
-#### 3.16.2.1 `description`
+##### 3.16.2.1 `description`
 
-OPTIONAL. String. Default: null.
+OPTIONAL. String. Default: `null`.
 
 The description is used for the layer name in the legend.
 
-#### 3.16.2.2 `minzoom`
+##### 3.16.2.2 `minzoom`
 
-REQUIRED. Unsigned Integer. Default: null.
+REQUIRED. Unsigned Integer. Default: `null`.
 
 The minimum zoom level of the layer.
 
-#### 3.16.2.3 `maxzoom`
+##### 3.16.2.3 `maxzoom`
 
-REQUIRED. Unsigned Integer. Default: null.
+REQUIRED. Unsigned Integer. Default: `null`.
 
 The maximum zoom level of the layer.
 
-#### 3.16.2.4 `drawTypes`
+##### 3.16.2.4 `drawTypes`
 
 REQUIRED. Array<Number>. Default: `[]`.
 
@@ -346,7 +347,7 @@ One of:
 - 4 Lines3D
 - 5 Polygons3D
 
-#### 3.16.2.5 `shape`
+##### 3.16.2.5 `shape`
 
 REQUIRED. Object. Default: `{}`.
 
@@ -360,7 +361,7 @@ The shape of the properties data for the layer. Each object key is the `name` of
 - `Array<TYPE>`
 - `{ ... }`
 
-In the case of an array, the values are all of the same type. While the number types may seem expensive, the writer's will encode them (e.g. varint) to reduce the number of bytes, this is just for the reader's sake. Always assume any value MAY be null in actuality.s
+In the case of an array, the values are all of the same type. While the number types may seem expensive, the writer's will encode them (e.g. varint) to reduce the number of bytes, this is just for the reader's sake. Always assume any value MAY be null in actuality. Also, if the array isn't a primitive type, then it MUST be an object but that object may only have values that are primitives.
 
 Example Shape:
 
@@ -371,11 +372,12 @@ Example Shape:
   "info": {
     "name": "string",
     "value": "i64",
-  }
+  },
+  "arr": ["u64"]
 }
 ```
 
-#### 3.16.2.6 `mShape`
+##### 3.16.2.6 `mShape`
 
 OPTIONAL. Object. Default: `undefined`.
 
@@ -405,9 +407,9 @@ Example Shape:
 }
 ```
 
-## 3.17 `version`
+### 3.17 `version`
 
-OPTIONAL. String. Default: "1.0.0".
+OPTIONAL. String. Default: `"1.0.0"`.
 
 A [semver.org](https://semver.org) style version number of the tiles. When changes across tiles are introduced the minor version MUST change. This may lead to cut off labels. Therefore, implementors can decide to clean their cache when the minor version changes. Changes to the patch level MUST only have changes to tiles that are contained within one tile. When tiles change significantly, such as updating a vector tile layer name, the major version MUST be increased. Implementations MUST NOT use tiles with different major versions.
 
@@ -417,10 +419,30 @@ A [semver.org](https://semver.org) style version number of the tiles. When chang
 }
 ```
 
-# 4. Examples
+### 3.18 `tilestats`
+
+OPTIONAL. Object. Default: `{}`.
+
+Tile count statistics. Includes an all encompassing count called `total`. If using the S2 TileJSON format, create totals for each face.
+
+```JSON
+{
+  "tilestats": {
+    "total": 7,
+    "0": 0,
+    "1": 0,
+    "2": 5,
+    "3": 2,
+    "4": 0,
+    "5": 0
+  }
+}
+```
+
+## 4. Examples
 
 Examples can be found in the [examples directory](./example).
 
-# 5. Caching
+## 5. Caching
 
 Clients MAY cache files retrieved from a remote server. When implementations decide to perform caching, they MUST honor valid cache control HTTP headers as defined in the HTTP specification for both tile images and the TileJSON manifest file.

@@ -12,7 +12,6 @@ categories = ["no-std", "algorithms"]
 keywords = ["s2-tilejson", "earcut", "gis", "low-cost-code"]
 license = "MIT"
 # Include only specific files and directories
-# include = ["/ovtile", "Cargo.toml", "Cargo.lock", "README.md", "LICENSE"]
 exclude = [
     "/assets",
     "/benchmarks",

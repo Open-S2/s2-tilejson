@@ -4,16 +4,19 @@
 
 extern crate alloc;
 
-use serde::{Serialize, Deserialize};
+use serde::{Serialize, Deserialize, Serializer, Deserializer};
+use serde::ser::SerializeTuple;
+use serde::de::{self, SeqAccess, Visitor};
 
 use alloc::borrow::ToOwned;
 use alloc::collections::BTreeSet;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
+use alloc::fmt;
 
 /// S2 Face
-#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Serialize, Deserialize, Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Face {
     /// Face 0
     Face0 = 0,
@@ -48,7 +51,7 @@ impl From<u8> for Face {
 
 /// The Bounding box, whether the tile bounds or lon-lat bounds or whatever.
 #[derive(Copy, Clone, Debug, PartialEq, PartialOrd)]
-pub struct BBox<T> {
+pub struct BBox<T = f64> {
     /// left most point; Also represents the left-most longitude
     pub left: T,
     /// bottom most point; Also represents the bottom-most latitude
@@ -58,6 +61,64 @@ pub struct BBox<T> {
     /// top most point; Also represents the top-most latitude
     pub top: T,
 }
+impl<T> Serialize for BBox<T>
+where
+    T: Serialize + Copy,
+{
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let mut seq = serializer.serialize_tuple(4)?;
+        seq.serialize_element(&self.left)?;
+        seq.serialize_element(&self.bottom)?;
+        seq.serialize_element(&self.right)?;
+        seq.serialize_element(&self.top)?;
+        seq.end()
+    }
+}
+
+impl<'de, T> Deserialize<'de> for BBox<T>
+where
+    T: Deserialize<'de> + Copy,
+{
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        struct BBoxVisitor<T> {
+            marker: core::marker::PhantomData<T>,
+        }
+
+        impl<'de, T> Visitor<'de> for BBoxVisitor<T>
+        where
+            T: Deserialize<'de> + Copy,
+        {
+            type Value = BBox<T>;
+
+            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+                formatter.write_str("a sequence of four numbers")
+            }
+
+            fn visit_seq<V>(self, mut seq: V) -> Result<BBox<T>, V::Error>
+            where
+                V: SeqAccess<'de>,
+            {
+                let left = seq.next_element()?
+                    .ok_or_else(|| de::Error::invalid_length(0, &self))?;
+                let bottom = seq.next_element()?
+                    .ok_or_else(|| de::Error::invalid_length(1, &self))?;
+                let right = seq.next_element()?
+                    .ok_or_else(|| de::Error::invalid_length(2, &self))?;
+                let top = seq.next_element()?
+                    .ok_or_else(|| de::Error::invalid_length(3, &self))?;
+                Ok(BBox { left, bottom, right, top })
+            }
+        }
+
+        deserializer.deserialize_tuple(4, BBoxVisitor { marker: core::marker::PhantomData })
+    }
+}
 
 /// Use bounds as floating point numbers for longitude and latitude
 pub type LonLatBounds = BBox<f64>;
@@ -66,7 +127,7 @@ pub type LonLatBounds = BBox<f64>;
 pub type TileBounds = BBox<u64>;
 
 /// 1: points, 2: lines, 3: polys, 4: points3D, 5: lines3D, 6: polys3D
-#[derive(Copy, Clone, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Copy, Clone, Debug, PartialEq)]
 pub enum DrawType {
     /// Collection of points
     Points = 1,
@@ -96,24 +157,21 @@ pub enum DrawType {
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 #[serde(rename_all = "lowercase")]
 pub enum PrimitiveShape {
-    /// 'string'
+    /// String type utf8 encoded
     String,
-    /// number 'f32'
-    F32,
-    /// number 'f64'
-    F64,
-    /// number 'u64'
+    /// unsigned 64 bit integer
     U64,
-    /// number 'i64'
+    /// signed 64 bit integer
     I64,
-    /// 'true' or 'false'
+    /// floating point number
+    F32,
+    /// double precision floating point number
+    F64,
+    /// boolean
     Bool,
-    /// 'null'
+    /// null
     Null,
 }
-
-/// The Shape Object But the values can only be primitives
-pub type ShapePrimitive = BTreeMap<String, PrimitiveShape>;
 
 /// Arrays may contain either a primitive or an object whose values are primitives
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
@@ -122,7 +180,7 @@ pub enum ShapePrimitiveType {
     /// Primitive type
     Primitive(PrimitiveShape),
     /// Nested shape that can only contain primitives
-    NestedPrimitive(ShapePrimitive),
+    NestedPrimitive(BTreeMap<String, PrimitiveShape>),
 }
 
 /// Shape types that can be found in a shapes object.
@@ -143,9 +201,10 @@ pub enum ShapeType {
 pub type Shape = BTreeMap<String, ShapeType>;
 
 /// Each layer has metadata associated with it. Defined as blueprints pre-construction of vector data.
-#[derive(Debug, Default, Clone, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, Default, Clone, PartialEq)]
 pub struct LayerMetaData {
     /// The description of the layer
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
     /// the lowest zoom level at which the layer is available
     pub minzoom: u8,
@@ -156,6 +215,7 @@ pub struct LayerMetaData {
     /// The shape that can be found in this layer
     pub shape: Shape,
     /// The shape used inside features that can be found in this layer
+    #[serde(skip_serializing_if = "Option::is_none", rename = "mShape")]
     pub m_shape: Option<Shape>,
 }
 
@@ -163,21 +223,27 @@ pub struct LayerMetaData {
 pub type LayersMetaData = BTreeMap<String, LayerMetaData>;
 
 /// Tilestats is simply a tracker to see where most of the tiles live
-#[derive(Debug, Default, Clone, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, Default, Clone, PartialEq)]
 pub struct TileStatsMetadata {
     /// total number of tiles
     pub total: u64,
     /// number of tiles for face 0
+    #[serde(rename = "0")]
     pub total_0: u64,
     /// number of tiles for face 1
+    #[serde(rename = "1")]
     pub total_1: u64,
     /// number of tiles for face 2
+    #[serde(rename = "2")]
     pub total_2: u64,
     /// number of tiles for face 3
+    #[serde(rename = "3")]
     pub total_3: u64,
     /// number of tiles for face 4
+    #[serde(rename = "4")]
     pub total_4: u64,
     /// number of tiles for face 5
+    #[serde(rename = "5")]
     pub total_5: u64,
 }
 impl TileStatsMetadata {
@@ -209,23 +275,29 @@ impl TileStatsMetadata {
 
 /// Attribution data is stored in an object.
 /// The key is the name of the attribution, and the value is the link
-pub type Attributions = BTreeMap<String, String>;
+pub type Attribution = BTreeMap<String, String>;
 
 /// Track the S2 tile bounds of each face and zoom
-#[derive(Debug, Default, Clone, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, Default, Clone, PartialEq)]
 pub struct FaceBounds {
     // facesbounds[face][zoom] = [...]
     /// Tile bounds for face 0 at each zoom
+    #[serde(rename = "0")]
     pub face0: BTreeMap<u8, TileBounds>,
     /// Tile bounds for face 1 at each zoom
+    #[serde(rename = "1")]
     pub face1: BTreeMap<u8, TileBounds>,
     /// Tile bounds for face 2 at each zoom
+    #[serde(rename = "2")]
     pub face2: BTreeMap<u8, TileBounds>,
     /// Tile bounds for face 3 at each zoom
+    #[serde(rename = "3")]
     pub face3: BTreeMap<u8, TileBounds>,
     /// Tile bounds for face 4 at each zoom
+    #[serde(rename = "4")]
     pub face4: BTreeMap<u8, TileBounds>,
     /// Tile bounds for face 5 at each zoom
+    #[serde(rename = "5")]
     pub face5: BTreeMap<u8, TileBounds>,
 }
 impl FaceBounds {
@@ -259,7 +331,8 @@ impl FaceBounds {
 pub type WMBounds = BTreeMap<u8, TileBounds>;
 
 /// Check the source type of the layer
-#[derive(Debug, Default, Clone, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, Default, Clone, PartialEq)]
+#[serde(rename_all = "lowercase")]
 pub enum SourceType {
     /// Vector data
     #[default] Vector,
@@ -268,6 +341,7 @@ pub enum SourceType {
     /// Raster data
     Raster,
     /// Raster DEM data
+    #[serde(rename = "raster-dem")]
     RasterDem,
     /// Sensor data
     Sensor,
@@ -286,11 +360,13 @@ impl From<&str> for SourceType {
 }
 
 /// Store the encoding of the data
-#[derive(Debug, Default, Clone, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, Default, Clone, PartialEq)]
+#[serde(rename_all = "lowercase")]
 pub enum Encoding {
     /// Gzip encoding
     Gzip,
     /// Brotli encoding
+    #[serde(rename = "br")]
     Brotli,
     /// Zstd encoding
     Zstd,
@@ -339,15 +415,18 @@ impl From<&str> for Encoding {
 }
 
 /// Old spec tracks basic vector data
-#[derive(Debug, Default, Clone, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, Default, Clone, PartialEq)]
 pub struct VectorLayer {
     /// The id of the layer
     pub id: String,
     /// The description of the layer
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
     /// The min zoom of the layer
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub minzoom: Option<u8>,
     /// The max zoom of the layer
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub maxzoom: Option<u8>,
 }
 
@@ -355,7 +434,8 @@ pub struct VectorLayer {
 /// Default Web Mercator tile scheme is `xyz`
 /// Adding a t prefix to the scheme will change the request to be time sensitive
 /// TMS is an oudated version that is not supported by s2maps-gpu
-#[derive(Debug, Default, Clone, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, Default, Clone, PartialEq)]
+#[serde(rename_all = "lowercase")]
 pub enum Scheme {
     /// The default scheme with faces (S2)
     #[default] Fzxy,
@@ -392,7 +472,7 @@ impl From<Scheme> for String {
 }
 
 /// Store where the center of the data lives
-#[derive(Debug, Default, Clone, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, Default, Clone, PartialEq)]
 pub struct Center {
     /// The longitude of the center
     pub lon: f64,
@@ -403,7 +483,7 @@ pub struct Center {
 }
 
 /// Metadata for the tile data
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct Metadata {
     /// The version of the s2-tilejson spec
     pub s2tilejson: String,
@@ -416,6 +496,7 @@ pub struct Metadata {
     /// The description of the data
     pub description: String,
     /// The type of the data
+    #[serde(rename = "type")]
     pub type_: SourceType,
     /// The encoding of the data
     pub encoding: Encoding,
@@ -432,7 +513,7 @@ pub struct Metadata {
     /// The center of the data
     pub center: Center,
     /// { ['human readable string']: 'href' }
-    pub attributions: BTreeMap<String, String>,
+    pub attribution: Attribution,
     /// Track layer metadata
     pub layers: LayersMetaData,
     /// Track tile stats for each face and total overall
@@ -456,7 +537,7 @@ impl Default for Metadata {
             minzoom: 0,
             maxzoom: 27,
             center: Center::default(),
-            attributions: BTreeMap::new(),
+            attribution: BTreeMap::new(),
             layers: LayersMetaData::default(),
             tilestats: TileStatsMetadata::default(),
             vector_layers: Vec::new(),
@@ -525,7 +606,7 @@ impl MetadataBuilder {
 
     /// add an attribution
     pub fn add_attribution(&mut self, display_name: &str, href: &str) {
-        self.metadata.attributions.insert(display_name.into(), href.into());
+        self.metadata.attribution.insert(display_name.into(), href.into());
     }
 
     /// Add the layer metadata
@@ -663,7 +744,7 @@ mod tests {
             scheme: "fzxy".into(),
             type_: "vector".into(),
             encoding: "none".into(),
-            attributions: BTreeMap::from([
+            attribution: BTreeMap::from([
                 ("OpenStreetMap".into(), "https://www.openstreetmap.org/copyright/".into()),
             ]),
             bounds: BTreeMap::from([

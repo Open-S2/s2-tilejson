@@ -72,19 +72,19 @@ export interface LayersMetaData {
 /** Tilestats is simply a tracker to see where most of the tiles live */
 export interface TileStatsMetadata {
   total: number;
-  0: { total: number };
-  1: { total: number };
-  2: { total: number };
-  3: { total: number };
-  4: { total: number };
-  5: { total: number };
+  0: number;
+  1: number;
+  2: number;
+  3: number;
+  4: number;
+  5: number;
 }
 
 /**
  * Attribution data is stored in an object.
  * The key is the name of the attribution, and the value is the link
  */
-export type Attributions = Record<string, string>;
+export type Attribution = Record<string, string>;
 
 /** Track the S2 tile bounds of each face and zoom */
 export interface FaceBounds {
@@ -160,7 +160,7 @@ export interface Metadata {
   /** The center of the data */
   center: Center;
   /** { ['human readable string']: 'href' } */
-  attributions: { [name: string]: string };
+  attribution: Attribution;
   /** Track layer metadata */
   layers: LayersMetaData;
   /** Track tile stats for each face and total overall */
@@ -194,15 +194,15 @@ export class MetadataBuilder {
     minzoom: Infinity,
     maxzoom: -Infinity,
     center: { lon: 0, lat: 0, zoom: 0 },
-    attributions: {},
+    attribution: {},
     tilestats: {
       total: 0,
-      0: { total: 0 },
-      1: { total: 0 },
-      2: { total: 0 },
-      3: { total: 0 },
-      4: { total: 0 },
-      5: { total: 0 },
+      0: 0,
+      1: 0,
+      2: 0,
+      3: 0,
+      4: 0,
+      5: 0,
     },
     layers: {},
     vector_layers: [],
@@ -272,7 +272,7 @@ export class MetadataBuilder {
    * @param href - link to the attribution
    */
   addAttribution(displayName: string, href: string) {
-    this.#metadata.attributions[displayName] = href;
+    this.#metadata.attribution[displayName] = href;
   }
 
   /**
@@ -324,7 +324,7 @@ export class MetadataBuilder {
     const metadata = this.#metadata;
     // update tile stats
     metadata.tilestats.total++;
-    metadata.tilestats[face].total++;
+    metadata.tilestats[face]++;
     this.#faces.add(face);
     this.#addBoundsS2(face, zoom, x, y);
     // update lon lat

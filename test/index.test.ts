@@ -43,7 +43,7 @@ test('basic metadata', () => {
   const resultingMetadata: Metadata = metaBuilder.commit();
 
   expect(resultingMetadata).toEqual({
-    attributions: {
+    attribution: {
       OpenStreetMap: 'https://www.openstreetmap.org/copyright/',
     },
     bounds: {
@@ -89,24 +89,12 @@ test('basic metadata', () => {
     s2tilejson: '1.0.0',
     scheme: 'fzxy',
     tilestats: {
-      '0': {
-        total: 0,
-      },
-      '1': {
-        total: 1,
-      },
-      '2': {
-        total: 0,
-      },
-      '3': {
-        total: 0,
-      },
-      '4': {
-        total: 0,
-      },
-      '5': {
-        total: 0,
-      },
+      '0': 0,
+      '1': 1,
+      '2': 0,
+      '3': 0,
+      '4': 0,
+      '5': 0,
       total: 2,
     },
     type: 'vector',
