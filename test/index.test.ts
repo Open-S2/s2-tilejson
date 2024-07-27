@@ -13,6 +13,7 @@ test('basic metadata', () => {
   metaBuilder.setVersion('1.0.0');
   metaBuilder.setScheme('fzxy'); // 'fzxy' | 'tfzxy' | 'xyz' | 'txyz' | 'tms'
   metaBuilder.setType('vector'); // 'vector' | 'json' | 'raster' | 'raster-dem' | 'sensor' | 'markers'
+  metaBuilder.setExtension('pbf');
   metaBuilder.setEncoding('none'); // 'gz' | 'br' | 'none'
   metaBuilder.addAttribution('OpenStreetMap', 'https://www.openstreetmap.org/copyright/');
 
@@ -56,6 +57,7 @@ test('basic metadata', () => {
     },
     description: 'A free editable map of the whole world.',
     encoding: 'none',
+    extension: 'pbf',
     faces: [0, 1],
     facesbounds: {
       '0': {},
@@ -104,6 +106,7 @@ test('basic metadata', () => {
         id: 'water_lines',
         maxzoom: 13,
         minzoom: 0,
+        fields: {},
       },
     ],
     version: '1.0.0',

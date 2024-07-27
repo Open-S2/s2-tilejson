@@ -25,6 +25,9 @@ The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "S
    1. [layers](#316-layers)
    1. [version](#317-version)
    1. [tilestats](#318-tilestats)
+   1. [type](#319-type)
+   1. [extension](#320-extension)
+   1. [encoding](#321-encoding)
 1. [Examples](#4-examples)
 1. [Caching](#5-caching)
 
@@ -42,7 +45,7 @@ The following describes the structure of a S2-TileJSON object. Implementations M
 
 *The word "implementation" in the following sections refers to services or tools that serve, generate, or validate S2-TileJSON objects.*
 
-### 3.1 `s2-tilejson`
+### 3.1 `s2tilejson`
 
 REQUIRED. String.
 
@@ -50,7 +53,7 @@ A semver.org style version number as a string. Describes the version of the S2-T
 
 ```JSON
 {
-  "s2-tilejson": "1.0.0"
+  "s2tilejson": "1.0.0"
 }
 ```
 
@@ -254,7 +257,7 @@ Contains a legend to be displayed with the map. Implementations MAY decide to tr
 
 ### 3.12 `maxzoom`
 
-OPTIONAL. Integer. Default: `30`.
+REQUIRED. Integer. Default: `30`.
 
 An integer specifying the maximum zoom level. MUST be in range: 0 <= minzoom <= maxzoom <= 30. A client or server MAY request tiles outside the zoom range, but the availability of these tiles is dependent on how the tile server or renderer handles the request (such as overzooming tiles).
 
@@ -266,7 +269,7 @@ An integer specifying the maximum zoom level. MUST be in range: 0 <= minzoom <= 
 
 ### 3.13 `minzoom`
 
-OPTIONAL. Integer. Default: `0`.
+REQUIRED. Integer. Default: `0`.
 
 An integer specifying the minimum zoom level. MUST be in range: 0 <= minzoom <= maxzoom <= 30.
 
@@ -290,11 +293,11 @@ A name describing the set of tiles. The name can contain any legal character. Im
 
 ### 3.15 `scheme`
 
-OPTIONAL. String. Default: `"xyz"`.
+OPTIONAL. String. Default: `"fzxy"`.
 
-Mercator: Either "xyz" or "txyz". The global-mercator (aka Spherical Mercator) profile is assumed. if a `t` is attached to the beginning of the xyz spec, the tiles are time based.
+Mercator: Either `"xyz"` or `"txyz"`. The global-mercator (aka Spherical Mercator) profile is assumed. if a `t` is attached to the beginning of the xyz spec, the tiles are time based.
 
-S2: May be "fzxy" or "tfzxy". This stands for `face`-`zoom`-`x`-`y`. If a `t` is attached to the beginning of the xyz spec, the tiles are time based.
+S2: May be `"fzxy"` or `"tfzxy"`. This stands for `face`-`zoom`-`x`-`y`. If a `t` is attached to the beginning of the xyz spec, the tiles are time based.
 
 ```JSON
 {
@@ -438,6 +441,36 @@ Tile count statistics. Includes an all encompassing count called `total`. If usi
   }
 }
 ```
+
+### 3.19 `type`
+
+REQUIRED. String. Default: `"vector"`.
+
+The type of the tiles being used. May be one of `"vector"`, `"json"`, `"raster"`, `"raster-dem"`, `"markers"`, or `"sensor"`. Because this value is often misused, you should support an "unknown" type but more often then not the string value is `"overlay"`.
+
+```JSON
+{
+  "type": "vector"
+}
+```
+
+### 3.20 `extension`
+
+REQUIRED. String. Default: `pbf`.
+
+Explains the extension name attached to the file So if the source url is `https://tile.example.com/data-example`, then the metadata url is `https://tile.example.com/data-example.json` and the metadata's `extension` property (for example may be `pbf`) will then ensure the following request could be something like `https://tile.example.com/data-example/{z}/{x}/{y}.pbf`
+
+```JSON
+{
+  "extension": "pbf"
+}
+```
+
+### 3.21 `encoding`
+
+OPTIONAL. String. Default: `"none"`.
+
+The encoding used to store the tile data. May be one of `none`, `gzip`, `br` or `zstd`.
 
 ## 4. Examples
 

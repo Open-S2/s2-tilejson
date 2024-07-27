@@ -345,6 +345,8 @@ pub enum SourceType {
     RasterDem,
     /// Sensor data
     Sensor,
+    /// Unknown source type
+    Unknown,
 }
 impl From<&str> for SourceType {
     fn from(source_type: &str) -> Self {
@@ -354,7 +356,7 @@ impl From<&str> for SourceType {
             "raster" => SourceType::Raster,
             "raster-dem" => SourceType::RasterDem,
             "sensor" => SourceType::Sensor,
-            _ => SourceType::Vector,
+            _ => SourceType::Unknown,
         }
     }
 }
@@ -428,6 +430,8 @@ pub struct VectorLayer {
     /// The max zoom of the layer
     #[serde(skip_serializing_if = "Option::is_none")]
     pub maxzoom: Option<u8>,
+    /// Information about each field property
+    pub fields: BTreeMap<String, String>
 }
 
 /// Default S2 tile scheme is `fzxy`
@@ -498,6 +502,8 @@ pub struct Metadata {
     /// The type of the data
     #[serde(rename = "type")]
     pub type_: SourceType,
+    /// The extension to use when requesting a tile
+    pub extension: String,
     /// The encoding of the data
     pub encoding: Encoding,
     /// List of faces that have data
@@ -530,6 +536,7 @@ impl Default for Metadata {
             scheme: Scheme::default(),
             description: "Built with s2maps-cli".into(),
             type_: SourceType::default(),
+            extension: "pbf".into(),
             encoding: Encoding::default(),
             faces: Vec::new(),
             bounds: WMBounds::default(),
@@ -584,6 +591,11 @@ impl MetadataBuilder {
         self.metadata.scheme = scheme;
     }
 
+    /// Set the extension of the data. [default=pbf]
+    pub fn set_extension(&mut self, extension: String) {
+        self.metadata.extension = extension;
+    }
+
     /// Set the type of the data. [default=vector]
     pub fn set_type(&mut self, type_: SourceType) {
         self.metadata.type_ = type_;
@@ -619,6 +631,7 @@ impl MetadataBuilder {
                 description: layer.description.clone(),
                 minzoom: Some(layer.minzoom),
                 maxzoom: Some(layer.maxzoom),
+                fields: BTreeMap::new(),
             });
         }
         // update minzoom and maxzoom
@@ -704,6 +717,7 @@ mod tests {
         meta_builder.set_scheme("fzxy".into()); // 'fzxy' | 'tfzxy' | 'xyz' | 'txyz' | 'tms'
         meta_builder.set_type("vector".into()); // 'vector' | 'json' | 'raster' | 'raster-dem' | 'sensor' | 'markers'
         meta_builder.set_encoding("none".into()); // 'gz' | 'br' | 'none'
+        meta_builder.set_extension("pbf".into());
         meta_builder.add_attribution("OpenStreetMap", "https://www.openstreetmap.org/copyright/");
 
         // Vector Specific: add layers based on how you want to parse data from a source:
@@ -744,6 +758,7 @@ mod tests {
             scheme: "fzxy".into(),
             type_: "vector".into(),
             encoding: "none".into(),
+            extension: "pbf".into(),
             attribution: BTreeMap::from([
                 ("OpenStreetMap".into(), "https://www.openstreetmap.org/copyright/".into()),
             ]),
@@ -789,7 +804,7 @@ mod tests {
                 m_shape: None,
             })]),
             s2tilejson: "1.0.0".into(),
-            vector_layers: Vec::from([VectorLayer { id: "water_lines".into(), description: Some("water_lines".into()), minzoom: Some(0), maxzoom: Some(13) }]),
+            vector_layers: Vec::from([VectorLayer { id: "water_lines".into(), description: Some("water_lines".into()), minzoom: Some(0), maxzoom: Some(13), fields: BTreeMap::new() }]),
         });
     }
 }

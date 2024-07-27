@@ -102,8 +102,37 @@ export interface WMBounds {
   [zoom: number]: BBox;
 }
 
-/** Check the source type of the layer */
-export type SourceType = 'vector' | 'json' | 'raster' | 'raster-dem' | 'sensor';
+/** Types of image extensions */
+export type ImageExtensions =
+  | 'raw'
+  | 'png'
+  | 'jpg'
+  | 'jpeg'
+  | 'jpe'
+  | 'webp'
+  | 'avif'
+  | 'gif'
+  | 'svg'
+  | 'bmp'
+  | 'tiff'
+  | 'ico'
+  | 'cur';
+
+/** All supported extensions */
+export type Extensions = 'geojson' | 'json' | 's2json' | 'pbf' | ImageExtensions | string;
+
+/**
+ * Check the source type of the layer.
+ * If "overlay" then an old engine was used
+ */
+export type SourceType =
+  | 'vector'
+  | 'json'
+  | 'raster'
+  | 'raster-dem'
+  | 'sensor'
+  | 'markers'
+  | 'overlay';
 
 /** Store the encoding of the data */
 export type Encoding = 'gz' | 'br' | 'none';
@@ -114,6 +143,7 @@ export interface VectorLayer {
   description?: string;
   minzoom?: number;
   maxzoom?: number;
+  fields: Record<string, string>;
 }
 
 /**
@@ -139,6 +169,8 @@ export interface Metadata {
   version: string;
   /** The name of the data */
   name: string;
+  /** The extension when requesting a tile */
+  extension: Extensions;
   /** The scheme of the data */
   scheme: Scheme;
   /** The description of the data */
@@ -146,7 +178,7 @@ export interface Metadata {
   /** The type of the data */
   type: SourceType;
   /** The encoding of the data */
-  encoding: Encoding;
+  encoding?: Encoding;
   /** List of faces that have data */
   faces: Face[];
   /** WM Tile fetching bounds. Helpful to not make unecessary requests for tiles we know don't exist */
@@ -164,7 +196,7 @@ export interface Metadata {
   /** Track layer metadata */
   layers: LayersMetaData;
   /** Track tile stats for each face and total overall */
-  tilestats: TileStatsMetadata;
+  tilestats?: TileStatsMetadata;
   /** Old spec, track basic layer metadata */
   vector_layers: VectorLayer[];
 }
@@ -178,6 +210,7 @@ export class MetadataBuilder {
     version: '1.0.0',
     name: 'default',
     scheme: 'fzxy',
+    extension: 'pbf',
     description: 'Built with s2maps-cli',
     type: 'vector',
     encoding: 'none',
@@ -224,6 +257,14 @@ export class MetadataBuilder {
    */
   setName(name: string) {
     this.#metadata.name = name;
+  }
+
+  /**
+   * Set the extension
+   * @param extension - extension of the data
+   */
+  setExtension(extension: Extensions) {
+    this.#metadata.extension = extension;
   }
 
   /**
@@ -289,6 +330,7 @@ export class MetadataBuilder {
       description: layer.description,
       minzoom: layer.minzoom,
       maxzoom: layer.maxzoom,
+      fields: {},
     });
     // update minzoom and maxzoom
     if (layer.minzoom < this.#metadata.minzoom) this.#metadata.minzoom = layer.minzoom;
@@ -305,7 +347,7 @@ export class MetadataBuilder {
   addTileWM(zoom: number, x: number, y: number, llBounds: BBox) {
     const metadata = this.#metadata;
     // update tile stats
-    metadata.tilestats.total++;
+    if (metadata.tilestats) metadata.tilestats.total++;
     this.#faces.add(0);
     this.#addBoundsWM(zoom, x, y);
     // update lon lat
@@ -323,8 +365,10 @@ export class MetadataBuilder {
   addTileS2(face: Face, zoom: number, x: number, y: number, llBounds: BBox): void {
     const metadata = this.#metadata;
     // update tile stats
-    metadata.tilestats.total++;
-    metadata.tilestats[face]++;
+    if (metadata.tilestats) {
+      metadata.tilestats.total++;
+      metadata.tilestats[face]++;
+    }
     this.#faces.add(face);
     this.#addBoundsS2(face, zoom, x, y);
     // update lon lat
