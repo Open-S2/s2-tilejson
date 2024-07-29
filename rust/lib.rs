@@ -8,6 +8,7 @@ use serde::{Serialize, Deserialize, Serializer, Deserializer};
 use serde::ser::SerializeTuple;
 use serde::de::{self, SeqAccess, Visitor};
 
+use alloc::format;
 use alloc::borrow::ToOwned;
 use alloc::collections::BTreeSet;
 use alloc::collections::BTreeMap;
@@ -127,7 +128,7 @@ pub type LonLatBounds = BBox<f64>;
 pub type TileBounds = BBox<u64>;
 
 /// 1: points, 2: lines, 3: polys, 4: points3D, 5: lines3D, 6: polys3D
-#[derive(Serialize, Deserialize, Copy, Clone, Debug, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialEq)]
 pub enum DrawType {
     /// Collection of points
     Points = 1,
@@ -141,6 +142,52 @@ pub enum DrawType {
     Lines3D = 5,
     /// Collection of 3D polygons
     Polygons3D = 6,
+}
+impl From<DrawType> for u8 {
+    fn from(draw_type: DrawType) -> Self {
+        draw_type as u8
+    }
+}
+impl From<u8> for DrawType {
+    fn from(draw_type: u8) -> Self {
+        match draw_type {
+            1 => DrawType::Points,
+            2 => DrawType::Lines,
+            3 => DrawType::Polygons,
+            4 => DrawType::Points3D,
+            5 => DrawType::Lines3D,
+            6 => DrawType::Polygons3D,
+            _ => DrawType::Points,
+        }
+    }
+}
+impl Serialize for DrawType {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        // Serialize as u8
+        serializer.serialize_u8(*self as u8)
+    }
+}
+
+impl<'de> Deserialize<'de> for DrawType {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        // Deserialize from u8 or string
+        let value: u8 = Deserialize::deserialize(deserializer)?;
+        match value {
+            1 => Ok(DrawType::Points),
+            2 => Ok(DrawType::Lines),
+            3 => Ok(DrawType::Polygons),
+            4 => Ok(DrawType::Points3D),
+            5 => Ok(DrawType::Lines3D),
+            6 => Ok(DrawType::Polygons3D),
+            _ => Err(serde::de::Error::custom(format!("unknown DrawType variant: {}", value))),
+        }
+    }
 }
 
 // Shapes exist solely to deconstruct and rebuild objects.
@@ -331,7 +378,7 @@ impl FaceBounds {
 pub type WMBounds = BTreeMap<u8, TileBounds>;
 
 /// Check the source type of the layer
-#[derive(Serialize, Deserialize, Debug, Default, Clone, PartialEq)]
+#[derive(Serialize, Debug, Default, Clone, PartialEq)]
 #[serde(rename_all = "lowercase")]
 pub enum SourceType {
     /// Vector data
@@ -345,6 +392,8 @@ pub enum SourceType {
     RasterDem,
     /// Sensor data
     Sensor,
+    /// Marker data
+    Markers,
     /// Unknown source type
     Unknown,
 }
@@ -356,8 +405,19 @@ impl From<&str> for SourceType {
             "raster" => SourceType::Raster,
             "raster-dem" => SourceType::RasterDem,
             "sensor" => SourceType::Sensor,
+            "markers" => SourceType::Markers,
             _ => SourceType::Unknown,
         }
+    }
+}
+impl<'de> Deserialize<'de> for SourceType {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        // Deserialize from a string
+        let s: String = Deserialize::deserialize(deserializer)?;
+        Ok(SourceType::from(s.as_str()))
     }
 }
 
@@ -365,15 +425,15 @@ impl From<&str> for SourceType {
 #[derive(Serialize, Deserialize, Debug, Default, Clone, PartialEq)]
 #[serde(rename_all = "lowercase")]
 pub enum Encoding {
+    /// No encoding
+    #[default] None = 0,
     /// Gzip encoding
-    Gzip,
+    Gzip = 1,
     /// Brotli encoding
     #[serde(rename = "br")]
-    Brotli,
+    Brotli = 2,
     /// Zstd encoding
-    Zstd,
-    /// No encoding
-    #[default] None,
+    Zstd = 3,
 }
 impl From<u8> for Encoding {
     fn from(encoding: u8) -> Self {
@@ -395,13 +455,13 @@ impl From<Encoding> for u8 {
         }
     }
 }
-impl From<Encoding> for String {
+impl From<Encoding> for &str {
     fn from(encoding: Encoding) -> Self {
         match encoding {
-            Encoding::Gzip => "gzip".into(),
-            Encoding::Brotli => "br".into(),
-            Encoding::Zstd => "zstd".into(),
-            Encoding::None => "none".into(),
+            Encoding::Gzip => "gzip",
+            Encoding::Brotli => "br",
+            Encoding::Zstd => "zstd",
+            Encoding::None => "none",
         }
     }
 }
@@ -463,14 +523,14 @@ impl From<&str> for Scheme {
         }
     }
 }
-impl From<Scheme> for String {
+impl From<Scheme> for &str {
     fn from(scheme: Scheme) -> Self {
         match scheme {
-            Scheme::Fzxy => "fzxy".into(),
-            Scheme::Tfzxy => "tfzxy".into(),
-            Scheme::Xyz => "xyz".into(),
-            Scheme::Txyz => "txyz".into(),
-            Scheme::Tms => "tms".into(),
+            Scheme::Fzxy => "fzxy",
+            Scheme::Tfzxy => "tfzxy",
+            Scheme::Xyz => "xyz",
+            Scheme::Txyz => "txyz",
+            Scheme::Tms => "tms",
         }
     }
 }
@@ -806,5 +866,290 @@ mod tests {
             s2tilejson: "1.0.0".into(),
             vector_layers: Vec::from([VectorLayer { id: "water_lines".into(), description: Some("water_lines".into()), minzoom: Some(0), maxzoom: Some(13), fields: BTreeMap::new() }]),
         });
+    }
+
+    #[test]
+    fn test_face() {
+        assert_eq!(Face::Face0, Face::from(0));
+        assert_eq!(Face::Face1, Face::from(1));
+        assert_eq!(Face::Face2, Face::from(2));
+        assert_eq!(Face::Face3, Face::from(3));
+        assert_eq!(Face::Face4, Face::from(4));
+        assert_eq!(Face::Face5, Face::from(5));
+
+        assert_eq!(0, u8::from(Face::Face0));
+        assert_eq!(1, u8::from(Face::Face1));
+        assert_eq!(2, u8::from(Face::Face2));
+        assert_eq!(3, u8::from(Face::Face3));
+        assert_eq!(4, u8::from(Face::Face4));
+        assert_eq!(5, u8::from(Face::Face5));
+    }
+
+    #[test]
+    fn test_bbox() {
+        let bbox: BBox = BBox { left: 0.0, bottom: 0.0, right: 0.0, top: 0.0 };
+        // serialize to JSON and back
+        let json = serde_json::to_string(&bbox).unwrap();
+        assert_eq!(json, r#"[0.0,0.0,0.0,0.0]"#);
+        let bbox2: BBox = serde_json::from_str(&json).unwrap();
+        assert_eq!(bbox, bbox2);
+    }
+
+    // TileStatsMetadata
+    #[test]
+    fn test_tilestats() {
+        let mut tilestats = TileStatsMetadata { total: 2, total_0: 0, total_1: 1, total_2: 0, total_3: 0, total_4: 0, total_5: 0 };
+        // serialize to JSON and back
+        let json = serde_json::to_string(&tilestats).unwrap();
+        assert_eq!(json, r#"{"total":2,"0":0,"1":1,"2":0,"3":0,"4":0,"5":0}"#);
+        let tilestats2: TileStatsMetadata = serde_json::from_str(&json).unwrap();
+        assert_eq!(tilestats, tilestats2);
+        
+        // get0
+        assert_eq!(tilestats.get(0.into()), 0);
+        // increment0
+        tilestats.increment(0.into());
+        assert_eq!(tilestats.get(0.into()), 1);
+
+        // get 1
+        assert_eq!(tilestats.get(1.into()), 1);
+        // increment 1
+        tilestats.increment(1.into());
+        assert_eq!(tilestats.get(1.into()), 2);
+
+        // get 2
+        assert_eq!(tilestats.get(2.into()), 0);
+        // increment 2
+        tilestats.increment(2.into());
+        assert_eq!(tilestats.get(2.into()), 1);
+
+        // get 3
+        assert_eq!(tilestats.get(3.into()), 0);
+        // increment 3
+        tilestats.increment(3.into());
+        assert_eq!(tilestats.get(3.into()), 1);
+
+        // get 4
+        assert_eq!(tilestats.get(4.into()), 0);
+        // increment 4
+        tilestats.increment(4.into());
+        assert_eq!(tilestats.get(4.into()), 1);
+
+        // get 5
+        assert_eq!(tilestats.get(5.into()), 0);
+        // increment 5
+        tilestats.increment(5.into());
+        assert_eq!(tilestats.get(5.into()), 1);
+    }
+
+    // FaceBounds
+    #[test]
+    fn test_facebounds() {
+        let mut facebounds = FaceBounds::default();
+        // get mut
+        let face0 = facebounds.get_mut(0.into());
+        face0.insert(0, TileBounds { left: 0, bottom: 0, right: 0, top: 0 });
+        // get mut 1
+        let face1 = facebounds.get_mut(1.into());
+        face1.insert(0, TileBounds { left: 0, bottom: 0, right: 1, top: 1 });
+        // get mut 2
+        let face2 = facebounds.get_mut(2.into());
+        face2.insert(0, TileBounds { left: 0, bottom: 0, right: 2, top: 2 });
+        // get mut 3
+        let face3 = facebounds.get_mut(3.into());
+        face3.insert(0, TileBounds { left: 0, bottom: 0, right: 3, top: 3 });
+        // get mut 4
+        let face4 = facebounds.get_mut(4.into());
+        face4.insert(0, TileBounds { left: 0, bottom: 0, right: 4, top: 4 });
+        // get mut 5
+        let face5 = facebounds.get_mut(5.into());
+        face5.insert(0, TileBounds { left: 0, bottom: 0, right: 5, top: 5 });
+    
+        // now get for all 5:
+        // get 0
+        assert_eq!(facebounds.get(0.into()).get(&0).unwrap(), &TileBounds { left: 0, bottom: 0, right: 0, top: 0 });
+        // get 1
+        assert_eq!(facebounds.get(1.into()).get(&0).unwrap(), &TileBounds { left: 0, bottom: 0, right: 1, top: 1 });
+        // get 2
+        assert_eq!(facebounds.get(2.into()).get(&0).unwrap(), &TileBounds { left: 0, bottom: 0, right: 2, top: 2 });
+        // get 3
+        assert_eq!(facebounds.get(3.into()).get(&0).unwrap(), &TileBounds { left: 0, bottom: 0, right: 3, top: 3 });
+        // get 4
+        assert_eq!(facebounds.get(4.into()).get(&0).unwrap(), &TileBounds { left: 0, bottom: 0, right: 4, top: 4 });
+        // get 5
+        assert_eq!(facebounds.get(5.into()).get(&0).unwrap(), &TileBounds { left: 0, bottom: 0, right: 5, top: 5 });
+
+        // serialize to JSON and back
+        let json = serde_json::to_string(&facebounds).unwrap();
+        assert_eq!(json, "{\"0\":{\"0\":[0,0,0,0]},\"1\":{\"0\":[0,0,1,1]},\"2\":{\"0\":[0,0,2,2]},\"3\":{\"0\":[0,0,3,3]},\"4\":{\"0\":[0,0,4,4]},\"5\":{\"0\":[0,0,5,5]}}");
+        let facebounds2 = serde_json::from_str(&json).unwrap();
+        assert_eq!(facebounds, facebounds2);
+    }
+
+    // DrawType
+    #[test]
+    fn test_drawtype() {
+        assert_eq!(DrawType::from(1), DrawType::Points);
+        assert_eq!(DrawType::from(2), DrawType::Lines);
+        assert_eq!(DrawType::from(3), DrawType::Polygons);
+        assert_eq!(DrawType::from(4), DrawType::Points3D);
+        assert_eq!(DrawType::from(5), DrawType::Lines3D);
+        assert_eq!(DrawType::from(6), DrawType::Polygons3D);
+        assert_eq!(DrawType::from(7), DrawType::Points);
+
+        assert_eq!(1, u8::from(DrawType::Points));
+        assert_eq!(2, u8::from(DrawType::Lines));
+        assert_eq!(3, u8::from(DrawType::Polygons));
+        assert_eq!(4, u8::from(DrawType::Points3D));
+        assert_eq!(5, u8::from(DrawType::Lines3D));
+        assert_eq!(6, u8::from(DrawType::Polygons3D));
+
+        // check json is the number value
+        let json = serde_json::to_string(&DrawType::Points).unwrap();
+        assert_eq!(json, "1");
+        let drawtype: DrawType = serde_json::from_str(&json).unwrap();
+        assert_eq!(drawtype, DrawType::Points);
+
+        let drawtype: DrawType = serde_json::from_str("2").unwrap();
+        assert_eq!(drawtype, DrawType::Lines);
+
+        let drawtype: DrawType = serde_json::from_str("3").unwrap();
+        assert_eq!(drawtype, DrawType::Polygons);
+
+        let drawtype: DrawType = serde_json::from_str("4").unwrap();
+        assert_eq!(drawtype, DrawType::Points3D);
+
+        let drawtype: DrawType = serde_json::from_str("5").unwrap();
+        assert_eq!(drawtype, DrawType::Lines3D);
+
+        let drawtype: DrawType = serde_json::from_str("6").unwrap();
+        assert_eq!(drawtype, DrawType::Polygons3D);
+
+        assert!(serde_json::from_str::<DrawType>("7").is_err());
+    }
+
+    // SourceType
+    #[test]
+    fn test_sourcetype() {
+        // from string
+        assert_eq!(SourceType::from("vector"), SourceType::Vector);
+        assert_eq!(SourceType::from("json"), SourceType::Json);
+        assert_eq!(SourceType::from("raster"), SourceType::Raster);
+        assert_eq!(SourceType::from("raster-dem"), SourceType::RasterDem);
+        assert_eq!(SourceType::from("sensor"), SourceType::Sensor);
+        assert_eq!(SourceType::from("markers"), SourceType::Markers);
+        assert_eq!(SourceType::from("overlay"), SourceType::Unknown);
+
+        // json vector
+        let json = serde_json::to_string(&SourceType::Vector).unwrap();
+        assert_eq!(json, "\"vector\"");
+        let sourcetype: SourceType = serde_json::from_str(&json).unwrap();
+        assert_eq!(sourcetype, SourceType::Vector);
+
+        // json json
+        let json = serde_json::to_string(&SourceType::Json).unwrap();
+        assert_eq!(json, "\"json\"");
+        let sourcetype: SourceType = serde_json::from_str(&json).unwrap();
+        assert_eq!(sourcetype, SourceType::Json);
+
+        // json raster
+        let json = serde_json::to_string(&SourceType::Raster).unwrap();
+        assert_eq!(json, "\"raster\"");
+        let sourcetype: SourceType = serde_json::from_str(&json).unwrap();
+        assert_eq!(sourcetype, SourceType::Raster);
+
+        // json raster-dem
+        let json = serde_json::to_string(&SourceType::RasterDem).unwrap();
+        assert_eq!(json, "\"raster-dem\"");
+        let sourcetype: SourceType = serde_json::from_str(&json).unwrap();
+        assert_eq!(sourcetype, SourceType::RasterDem);
+
+        // json sensor
+        let json = serde_json::to_string(&SourceType::Sensor).unwrap();
+        assert_eq!(json, "\"sensor\"");
+        let sourcetype: SourceType = serde_json::from_str(&json).unwrap();
+        assert_eq!(sourcetype, SourceType::Sensor);
+
+        // json markers
+        let json = serde_json::to_string(&SourceType::Markers).unwrap();
+        assert_eq!(json, "\"markers\"");
+        let sourcetype: SourceType = serde_json::from_str(&json).unwrap();
+        assert_eq!(sourcetype, SourceType::Markers);
+
+        // json unknown
+        let json = serde_json::to_string(&SourceType::Unknown).unwrap();
+        assert_eq!(json, "\"unknown\"");
+        let sourcetype: SourceType = serde_json::from_str(r#""overlay""#).unwrap();
+        assert_eq!(sourcetype, SourceType::Unknown);
+    }
+
+    // Encoding
+    #[test]
+    fn test_encoding() {
+        // from string
+        assert_eq!(Encoding::from("none"), Encoding::None);
+        assert_eq!(Encoding::from("gzip"), Encoding::Gzip);
+        assert_eq!(Encoding::from("br"), Encoding::Brotli);
+        assert_eq!(Encoding::from("zstd"), Encoding::Zstd);
+
+        // to string
+        assert_eq!(core::convert::Into::<&str>::into(Encoding::None), "none");
+        assert_eq!(core::convert::Into::<&str>::into(Encoding::Gzip), "gzip");
+        assert_eq!(core::convert::Into::<&str>::into(Encoding::Brotli), "br");
+        assert_eq!(core::convert::Into::<&str>::into(Encoding::Zstd), "zstd");
+
+        // from u8
+        assert_eq!(Encoding::from(0), Encoding::None);
+        assert_eq!(Encoding::from(1), Encoding::Gzip);
+        assert_eq!(Encoding::from(2), Encoding::Brotli);
+        assert_eq!(Encoding::from(3), Encoding::Zstd);
+
+        // to u8
+        assert_eq!(u8::from(Encoding::None), 0);
+        assert_eq!(u8::from(Encoding::Gzip), 1);
+        assert_eq!(u8::from(Encoding::Brotli), 2);
+        assert_eq!(u8::from(Encoding::Zstd), 3);
+
+        // json gzip
+        let json = serde_json::to_string(&Encoding::Gzip).unwrap();
+        assert_eq!(json, "\"gzip\"");
+        let encoding: Encoding = serde_json::from_str(&json).unwrap();
+        assert_eq!(encoding, Encoding::Gzip);
+
+        // json br
+        let json = serde_json::to_string(&Encoding::Brotli).unwrap();
+        assert_eq!(json, "\"br\"");
+        let encoding: Encoding = serde_json::from_str(&json).unwrap();
+        assert_eq!(encoding, Encoding::Brotli);
+
+        // json none
+        let json = serde_json::to_string(&Encoding::None).unwrap();
+        assert_eq!(json, "\"none\"");
+        let encoding: Encoding = serde_json::from_str(&json).unwrap();
+        assert_eq!(encoding, Encoding::None);
+
+        // json zstd
+        let json = serde_json::to_string(&Encoding::Zstd).unwrap();
+        assert_eq!(json, "\"zstd\"");
+        let encoding: Encoding = serde_json::from_str(&json).unwrap();
+        assert_eq!(encoding, Encoding::Zstd);
+    }
+
+    // Scheme
+    #[test]
+    fn test_scheme() {
+        // from string
+        assert_eq!(Scheme::from("fzxy"), Scheme::Fzxy);
+        assert_eq!(Scheme::from("tfzxy"), Scheme::Tfzxy);
+        assert_eq!(Scheme::from("xyz"), Scheme::Xyz);
+        assert_eq!(Scheme::from("txyz"), Scheme::Txyz);
+        assert_eq!(Scheme::from("tms"), Scheme::Tms);
+
+        // to string
+        assert_eq!(core::convert::Into::<&str>::into(Scheme::Fzxy), "fzxy");
+        assert_eq!(core::convert::Into::<&str>::into(Scheme::Tfzxy), "tfzxy");
+        assert_eq!(core::convert::Into::<&str>::into(Scheme::Xyz), "xyz");
+        assert_eq!(core::convert::Into::<&str>::into(Scheme::Txyz), "txyz");
+        assert_eq!(core::convert::Into::<&str>::into(Scheme::Tms), "tms");
     }
 }

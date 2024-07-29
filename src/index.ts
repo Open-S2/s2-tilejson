@@ -135,7 +135,7 @@ export type SourceType =
   | 'overlay';
 
 /** Store the encoding of the data */
-export type Encoding = 'gz' | 'br' | 'none';
+export type Encoding = 'gz' | 'br' | 'none' | 'zstd';
 
 /** Old spec tracks basic vector data */
 export interface VectorLayer {
