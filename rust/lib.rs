@@ -273,24 +273,25 @@ pub type LayersMetaData = BTreeMap<String, LayerMetaData>;
 #[derive(Serialize, Deserialize, Debug, Default, Clone, PartialEq)]
 pub struct TileStatsMetadata {
     /// total number of tiles
+    #[serde(default)]
     pub total: u64,
     /// number of tiles for face 0
-    #[serde(rename = "0")]
+    #[serde(rename = "0", default)]
     pub total_0: u64,
     /// number of tiles for face 1
-    #[serde(rename = "1")]
+    #[serde(rename = "1", default)]
     pub total_1: u64,
     /// number of tiles for face 2
-    #[serde(rename = "2")]
+    #[serde(rename = "2", default)]
     pub total_2: u64,
     /// number of tiles for face 3
-    #[serde(rename = "3")]
+    #[serde(rename = "3", default)]
     pub total_3: u64,
     /// number of tiles for face 4
-    #[serde(rename = "4")]
+    #[serde(rename = "4", default)]
     pub total_4: u64,
     /// number of tiles for face 5
-    #[serde(rename = "5")]
+    #[serde(rename = "5", default)]
     pub total_5: u64,
 }
 impl TileStatsMetadata {
@@ -550,41 +551,58 @@ pub struct Center {
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct Metadata {
     /// The version of the s2-tilejson spec
+    #[serde(default)]
     pub s2tilejson: String,
     /// The version of the data
+    #[serde(default)]
     pub version: String,
     /// The name of the data
+    #[serde(default)]
     pub name: String,
     /// The scheme of the data
+    #[serde(default)]
     pub scheme: Scheme,
     /// The description of the data
+    #[serde(default)]
     pub description: String,
     /// The type of the data
-    #[serde(rename = "type")]
+    #[serde(rename = "type", default)]
     pub type_: SourceType,
     /// The extension to use when requesting a tile
+    #[serde(default)]
     pub extension: String,
     /// The encoding of the data
+    #[serde(default)]
     pub encoding: Encoding,
     /// List of faces that have data
+    #[serde(default)]
     pub faces: Vec<Face>,
     /// WM Tile fetching bounds. Helpful to not make unecessary requests for tiles we know don't exist
+    #[serde(default)]
     pub bounds: WMBounds,
     /// S2 Tile fetching bounds. Helpful to not make unecessary requests for tiles we know don't exist
+    #[serde(default)]
     pub facesbounds: FaceBounds,
     /// minzoom at which to request tiles. [default=0]
+    #[serde(default)]
     pub minzoom: u8,
     /// maxzoom at which to request tiles. [default=27]
+    #[serde(default)]
     pub maxzoom: u8,
     /// The center of the data
+    #[serde(default)]
     pub center: Center,
     /// { ['human readable string']: 'href' }
+    #[serde(default)]
     pub attribution: Attribution,
     /// Track layer metadata
+    #[serde(default)]
     pub layers: LayersMetaData,
     /// Track tile stats for each face and total overall
+    #[serde(default)]
     pub tilestats: TileStatsMetadata,
     /// Old spec, track basic layer metadata
+    #[serde(default)]
     pub vector_layers: Vec<VectorLayer>,
 }
 impl Default for Metadata {
@@ -1151,5 +1169,41 @@ mod tests {
         assert_eq!(core::convert::Into::<&str>::into(Scheme::Xyz), "xyz");
         assert_eq!(core::convert::Into::<&str>::into(Scheme::Txyz), "txyz");
         assert_eq!(core::convert::Into::<&str>::into(Scheme::Tms), "tms");
+    }
+
+    #[test]
+    fn test_tippecanoe_metadta() {
+        let meta_str = r#"{
+            "name": "test_fixture_1.pmtiles",
+            "description": "test_fixture_1.pmtiles",
+            "version": "2",
+            "type": "overlay",
+            "generator": "tippecanoe v2.5.0",
+            "generator_options": "./tippecanoe -zg -o test_fixture_1.pmtiles --force",
+            "vector_layers": [
+                {
+                    "id": "test_fixture_1pmtiles",
+                    "description": "",
+                    "minzoom": 0,
+                    "maxzoom": 0,
+                    "fields": {}
+                }
+            ],
+            "tilestats": {
+                "layerCount": 1,
+                "layers": [
+                    {
+                        "layer": "test_fixture_1pmtiles",
+                        "count": 1,
+                        "geometry": "Polygon",
+                        "attributeCount": 0,
+                        "attributes": []
+                    }
+                ]
+            }
+        }"#;
+
+        let _meta: Metadata = serde_json::from_str(meta_str).unwrap_or_else(|e| panic!("ERROR: {}", e));
+
     }
 }
