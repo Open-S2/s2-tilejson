@@ -36,9 +36,30 @@ fn main() {
 
     // as you build tiles, add the tiles metadata:
     // WM:
-    meta_builder.add_tile_wm(0, 0, 0, &LonLatBounds{ left: -60.0, bottom: -20.0, right: 5.0, top: 60.0 });
+    meta_builder.add_tile_wm(
+        0,
+        0,
+        0,
+        &LonLatBounds {
+            left: -60.0,
+            bottom: -20.0,
+            right: 5.0,
+            top: 60.0,
+        },
+    );
     // S2:
-    meta_builder.add_tile_s2(Face::Face1, 5, 22, 37, &LonLatBounds { left: -120.0, bottom: -7.0, right: 44.0, top: 72.0 });
+    meta_builder.add_tile_s2(
+        Face::Face1,
+        5,
+        22,
+        37,
+        &LonLatBounds {
+            left: -120.0,
+            bottom: -7.0,
+            right: 44.0,
+            top: 72.0,
+        },
+    );
 
     // finally to get the resulting metadata:
     let _resulting_metadata: Metadata = meta_builder.commit();
