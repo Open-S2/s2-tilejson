@@ -4,17 +4,17 @@
 
 extern crate alloc;
 
-use serde::{Serialize, Deserialize, Serializer, Deserializer};
-use serde::ser::SerializeTuple;
 use serde::de::{self, SeqAccess, Visitor};
+use serde::ser::SerializeTuple;
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
-use alloc::format;
 use alloc::borrow::ToOwned;
-use alloc::collections::BTreeSet;
 use alloc::collections::BTreeMap;
+use alloc::collections::BTreeSet;
+use alloc::fmt;
+use alloc::format;
 use alloc::string::String;
 use alloc::vec::Vec;
-use alloc::fmt;
 
 /// S2 Face
 #[derive(Serialize, Deserialize, Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
@@ -105,19 +105,33 @@ where
             where
                 V: SeqAccess<'de>,
             {
-                let left = seq.next_element()?
+                let left = seq
+                    .next_element()?
                     .ok_or_else(|| de::Error::invalid_length(0, &self))?;
-                let bottom = seq.next_element()?
+                let bottom = seq
+                    .next_element()?
                     .ok_or_else(|| de::Error::invalid_length(1, &self))?;
-                let right = seq.next_element()?
+                let right = seq
+                    .next_element()?
                     .ok_or_else(|| de::Error::invalid_length(2, &self))?;
-                let top = seq.next_element()?
+                let top = seq
+                    .next_element()?
                     .ok_or_else(|| de::Error::invalid_length(3, &self))?;
-                Ok(BBox { left, bottom, right, top })
+                Ok(BBox {
+                    left,
+                    bottom,
+                    right,
+                    top,
+                })
             }
         }
 
-        deserializer.deserialize_tuple(4, BBoxVisitor { marker: core::marker::PhantomData })
+        deserializer.deserialize_tuple(
+            4,
+            BBoxVisitor {
+                marker: core::marker::PhantomData,
+            },
+        )
     }
 }
 
@@ -185,7 +199,10 @@ impl<'de> Deserialize<'de> for DrawType {
             4 => Ok(DrawType::Points3D),
             5 => Ok(DrawType::Lines3D),
             6 => Ok(DrawType::Polygons3D),
-            _ => Err(serde::de::Error::custom(format!("unknown DrawType variant: {}", value))),
+            _ => Err(serde::de::Error::custom(format!(
+                "unknown DrawType variant: {}",
+                value
+            ))),
         }
     }
 }
@@ -383,7 +400,8 @@ pub type WMBounds = BTreeMap<u8, TileBounds>;
 #[serde(rename_all = "lowercase")]
 pub enum SourceType {
     /// Vector data
-    #[default] Vector,
+    #[default]
+    Vector,
     /// Json data
     Json,
     /// Raster data
@@ -427,7 +445,8 @@ impl<'de> Deserialize<'de> for SourceType {
 #[serde(rename_all = "lowercase")]
 pub enum Encoding {
     /// No encoding
-    #[default] None = 0,
+    #[default]
+    None = 0,
     /// Gzip encoding
     Gzip = 1,
     /// Brotli encoding
@@ -492,7 +511,7 @@ pub struct VectorLayer {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub maxzoom: Option<u8>,
     /// Information about each field property
-    pub fields: BTreeMap<String, String>
+    pub fields: BTreeMap<String, String>,
 }
 
 /// Default S2 tile scheme is `fzxy`
@@ -503,7 +522,8 @@ pub struct VectorLayer {
 #[serde(rename_all = "lowercase")]
 pub enum Scheme {
     /// The default scheme with faces (S2)
-    #[default] Fzxy,
+    #[default]
+    Fzxy,
     /// The time sensitive scheme with faces (S2)
     Tfzxy,
     /// The basic scheme (Web Mercator)
@@ -640,9 +660,18 @@ pub struct MetadataBuilder {
 impl Default for MetadataBuilder {
     fn default() -> Self {
         MetadataBuilder {
-            lon_lat_bounds: BBox { left: f64::INFINITY, bottom: f64::INFINITY, right: -f64::INFINITY, top: -f64::INFINITY },
+            lon_lat_bounds: BBox {
+                left: f64::INFINITY,
+                bottom: f64::INFINITY,
+                right: -f64::INFINITY,
+                top: -f64::INFINITY,
+            },
             faces: BTreeSet::new(),
-            metadata: Metadata { minzoom: 30, maxzoom: 0, ..Metadata::default() },
+            metadata: Metadata {
+                minzoom: 30,
+                maxzoom: 0,
+                ..Metadata::default()
+            },
         }
     }
 }
@@ -696,16 +725,24 @@ impl MetadataBuilder {
 
     /// add an attribution
     pub fn add_attribution(&mut self, display_name: &str, href: &str) {
-        self.metadata.attribution.insert(display_name.into(), href.into());
+        self.metadata
+            .attribution
+            .insert(display_name.into(), href.into());
     }
 
     /// Add the layer metadata
     pub fn add_layer(&mut self, name: &str, layer: &LayerMetaData) {
         // Only insert if the key does not exist
-        if self.metadata.layers.entry(name.into()).or_insert(layer.clone()).eq(&layer) {
+        if self
+            .metadata
+            .layers
+            .entry(name.into())
+            .or_insert(layer.clone())
+            .eq(&layer)
+        {
             // Also add to vector_layers only if the key was not present and the insert was successful
             self.metadata.vector_layers.push(VectorLayer {
-                id: name.into(),  // No need to clone again; we use the moved value
+                id: name.into(), // No need to clone again; we use the moved value
                 description: layer.description.clone(),
                 minzoom: Some(layer.minzoom),
                 maxzoom: Some(layer.maxzoom),
@@ -713,8 +750,12 @@ impl MetadataBuilder {
             });
         }
         // update minzoom and maxzoom
-        if layer.minzoom < self.metadata.minzoom { self.metadata.minzoom = layer.minzoom; }
-        if layer.maxzoom > self.metadata.maxzoom { self.metadata.maxzoom = layer.maxzoom; }
+        if layer.minzoom < self.metadata.minzoom {
+            self.metadata.minzoom = layer.minzoom;
+        }
+        if layer.maxzoom > self.metadata.maxzoom {
+            self.metadata.maxzoom = layer.maxzoom;
+        }
     }
 
     /// Add the WM tile metadata
@@ -735,8 +776,15 @@ impl MetadataBuilder {
 
     /// Update the center now that all tiles have been added
     fn update_center(&mut self) {
-        let Metadata { minzoom, maxzoom, .. } = self.metadata;
-        let BBox { left, bottom, right, top } = self.lon_lat_bounds;
+        let Metadata {
+            minzoom, maxzoom, ..
+        } = self.metadata;
+        let BBox {
+            left,
+            bottom,
+            right,
+            top,
+        } = self.lon_lat_bounds;
         self.metadata.center.lon = (left + right) / 2.0;
         self.metadata.center.lat = (bottom + top) / 2.0;
         self.metadata.center.zoom = (minzoom + maxzoom) >> 1;
@@ -746,10 +794,13 @@ impl MetadataBuilder {
     fn add_bounds_wm(&mut self, zoom: u8, x: u32, y: u32) {
         let x = x as u64;
         let y = y as u64;
-        let bbox = self.metadata.bounds.entry(zoom).or_insert(BBox{ 
-            left: u64::MAX, bottom: u64::MAX, right: 0, top: 0
+        let bbox = self.metadata.bounds.entry(zoom).or_insert(BBox {
+            left: u64::MAX,
+            bottom: u64::MAX,
+            right: 0,
+            top: 0,
         });
-        
+
         bbox.left = bbox.left.min(x);
         bbox.bottom = bbox.bottom.min(y);
         bbox.right = bbox.right.max(x);
@@ -760,10 +811,18 @@ impl MetadataBuilder {
     fn add_bounds_s2(&mut self, face: Face, zoom: u8, x: u32, y: u32) {
         let x = x as u64;
         let y = y as u64;
-        let bbox = self.metadata.facesbounds.get_mut(face).entry(zoom).or_insert(BBox{ 
-            left: u64::MAX, bottom: u64::MAX, right: 0, top: 0
-        });
-        
+        let bbox = self
+            .metadata
+            .facesbounds
+            .get_mut(face)
+            .entry(zoom)
+            .or_insert(BBox {
+                left: u64::MAX,
+                bottom: u64::MAX,
+                right: 0,
+                top: 0,
+            });
+
         bbox.left = bbox.left.min(x);
         bbox.bottom = bbox.bottom.min(y);
         bbox.right = bbox.right.max(x);
@@ -787,7 +846,6 @@ mod tests {
     fn it_works() {
         let mut meta_builder = MetadataBuilder::default();
 
-
         // on initial use be sure to update basic metadata:
         meta_builder.set_name("OSM".into());
         meta_builder.set_description("A free editable map of the whole world.".into());
@@ -809,7 +867,8 @@ mod tests {
             }
         }
         "#;
-        let shape: Shape = serde_json::from_str(shape_str).unwrap_or_else(|e| panic!("ERROR: {}", e));
+        let shape: Shape =
+            serde_json::from_str(shape_str).unwrap_or_else(|e| panic!("ERROR: {}", e));
         let layer = LayerMetaData {
             minzoom: 0,
             maxzoom: 13,
@@ -822,68 +881,121 @@ mod tests {
 
         // as you build tiles, add the tiles metadata:
         // WM:
-        meta_builder.add_tile_wm(0, 0, 0, &LonLatBounds{ left: -60.0, bottom: -20.0, right: 5.0, top: 60.0 });
+        meta_builder.add_tile_wm(
+            0,
+            0,
+            0,
+            &LonLatBounds {
+                left: -60.0,
+                bottom: -20.0,
+                right: 5.0,
+                top: 60.0,
+            },
+        );
         // S2:
-        meta_builder.add_tile_s2(Face::Face1, 5, 22, 37, &LonLatBounds { left: -120.0, bottom: -7.0, right: 44.0, top: 72.0 });
+        meta_builder.add_tile_s2(
+            Face::Face1,
+            5,
+            22,
+            37,
+            &LonLatBounds {
+                left: -120.0,
+                bottom: -7.0,
+                right: 44.0,
+                top: 72.0,
+            },
+        );
 
         // finally to get the resulting metadata:
         let resulting_metadata: Metadata = meta_builder.commit();
 
-        assert_eq!(resulting_metadata, Metadata {
-            name: "OSM".into(),
-            description: "A free editable map of the whole world.".into(),
-            version: "1.0.0".into(),
-            scheme: "fzxy".into(),
-            type_: "vector".into(),
-            encoding: "none".into(),
-            extension: "pbf".into(),
-            attribution: BTreeMap::from([
-                ("OpenStreetMap".into(), "https://www.openstreetmap.org/copyright/".into()),
-            ]),
-            bounds: BTreeMap::from([
-                (0, TileBounds { left: 0, bottom: 0, right: 0, top: 0 }),
-            ]),
-            faces: Vec::from(&[Face::Face0, Face::Face1]),
-            facesbounds: FaceBounds {
-                face0: BTreeMap::new(),
-                face1: BTreeMap::from([
-                    (5, TileBounds { left: 22, bottom: 37, right: 22, top: 37 }),
-                ]),
-                face2: BTreeMap::new(),
-                face3: BTreeMap::new(),
-                face4: BTreeMap::new(),
-                face5: BTreeMap::new(),
-            },
-            minzoom: 0,
-            maxzoom: 13,
-            center: Center { lon: -38.0, lat: 26.0, zoom: 6 },
-            tilestats: TileStatsMetadata {
-                total: 2,
-                total_0: 0,
-                total_1: 1,
-                total_2: 0,
-                total_3: 0,
-                total_4: 0,
-                total_5: 0,
-            },
-            layers: BTreeMap::from([("water_lines".into(), LayerMetaData{
-                description: Some("water_lines".into()),
+        assert_eq!(
+            resulting_metadata,
+            Metadata {
+                name: "OSM".into(),
+                description: "A free editable map of the whole world.".into(),
+                version: "1.0.0".into(),
+                scheme: "fzxy".into(),
+                type_: "vector".into(),
+                encoding: "none".into(),
+                extension: "pbf".into(),
+                attribution: BTreeMap::from([(
+                    "OpenStreetMap".into(),
+                    "https://www.openstreetmap.org/copyright/".into()
+                ),]),
+                bounds: BTreeMap::from([(
+                    0,
+                    TileBounds {
+                        left: 0,
+                        bottom: 0,
+                        right: 0,
+                        top: 0
+                    }
+                ),]),
+                faces: Vec::from(&[Face::Face0, Face::Face1]),
+                facesbounds: FaceBounds {
+                    face0: BTreeMap::new(),
+                    face1: BTreeMap::from([(
+                        5,
+                        TileBounds {
+                            left: 22,
+                            bottom: 37,
+                            right: 22,
+                            top: 37
+                        }
+                    ),]),
+                    face2: BTreeMap::new(),
+                    face3: BTreeMap::new(),
+                    face4: BTreeMap::new(),
+                    face5: BTreeMap::new(),
+                },
                 minzoom: 0,
                 maxzoom: 13,
-                draw_types: Vec::from(&[DrawType::Lines]),
-                shape: BTreeMap::from([
-                    ("class".into(), ShapeType::Primitive(PrimitiveShape::String)),
-                    ("offset".into(), ShapeType::Primitive(PrimitiveShape::F64)),
-                    ("info".into(), ShapeType::Nested(BTreeMap::from([
-                        ("name".into(), ShapeType::Primitive(PrimitiveShape::String)),
-                        ("value".into(), ShapeType::Primitive(PrimitiveShape::I64)),
-                    ]))),
-                ]),
-                m_shape: None,
-            })]),
-            s2tilejson: "1.0.0".into(),
-            vector_layers: Vec::from([VectorLayer { id: "water_lines".into(), description: Some("water_lines".into()), minzoom: Some(0), maxzoom: Some(13), fields: BTreeMap::new() }]),
-        });
+                center: Center {
+                    lon: -38.0,
+                    lat: 26.0,
+                    zoom: 6
+                },
+                tilestats: TileStatsMetadata {
+                    total: 2,
+                    total_0: 0,
+                    total_1: 1,
+                    total_2: 0,
+                    total_3: 0,
+                    total_4: 0,
+                    total_5: 0,
+                },
+                layers: BTreeMap::from([(
+                    "water_lines".into(),
+                    LayerMetaData {
+                        description: Some("water_lines".into()),
+                        minzoom: 0,
+                        maxzoom: 13,
+                        draw_types: Vec::from(&[DrawType::Lines]),
+                        shape: BTreeMap::from([
+                            ("class".into(), ShapeType::Primitive(PrimitiveShape::String)),
+                            ("offset".into(), ShapeType::Primitive(PrimitiveShape::F64)),
+                            (
+                                "info".into(),
+                                ShapeType::Nested(BTreeMap::from([
+                                    ("name".into(), ShapeType::Primitive(PrimitiveShape::String)),
+                                    ("value".into(), ShapeType::Primitive(PrimitiveShape::I64)),
+                                ]))
+                            ),
+                        ]),
+                        m_shape: None,
+                    }
+                )]),
+                s2tilejson: "1.0.0".into(),
+                vector_layers: Vec::from([VectorLayer {
+                    id: "water_lines".into(),
+                    description: Some("water_lines".into()),
+                    minzoom: Some(0),
+                    maxzoom: Some(13),
+                    fields: BTreeMap::new()
+                }]),
+            }
+        );
     }
 
     #[test]
@@ -905,7 +1017,12 @@ mod tests {
 
     #[test]
     fn test_bbox() {
-        let bbox: BBox = BBox { left: 0.0, bottom: 0.0, right: 0.0, top: 0.0 };
+        let bbox: BBox = BBox {
+            left: 0.0,
+            bottom: 0.0,
+            right: 0.0,
+            top: 0.0,
+        };
         // serialize to JSON and back
         let json = serde_json::to_string(&bbox).unwrap();
         assert_eq!(json, r#"[0.0,0.0,0.0,0.0]"#);
@@ -916,13 +1033,21 @@ mod tests {
     // TileStatsMetadata
     #[test]
     fn test_tilestats() {
-        let mut tilestats = TileStatsMetadata { total: 2, total_0: 0, total_1: 1, total_2: 0, total_3: 0, total_4: 0, total_5: 0 };
+        let mut tilestats = TileStatsMetadata {
+            total: 2,
+            total_0: 0,
+            total_1: 1,
+            total_2: 0,
+            total_3: 0,
+            total_4: 0,
+            total_5: 0,
+        };
         // serialize to JSON and back
         let json = serde_json::to_string(&tilestats).unwrap();
         assert_eq!(json, r#"{"total":2,"0":0,"1":1,"2":0,"3":0,"4":0,"5":0}"#);
         let tilestats2: TileStatsMetadata = serde_json::from_str(&json).unwrap();
         assert_eq!(tilestats, tilestats2);
-        
+
         // get0
         assert_eq!(tilestats.get(0.into()), 0);
         // increment0
@@ -966,36 +1091,132 @@ mod tests {
         let mut facebounds = FaceBounds::default();
         // get mut
         let face0 = facebounds.get_mut(0.into());
-        face0.insert(0, TileBounds { left: 0, bottom: 0, right: 0, top: 0 });
+        face0.insert(
+            0,
+            TileBounds {
+                left: 0,
+                bottom: 0,
+                right: 0,
+                top: 0,
+            },
+        );
         // get mut 1
         let face1 = facebounds.get_mut(1.into());
-        face1.insert(0, TileBounds { left: 0, bottom: 0, right: 1, top: 1 });
+        face1.insert(
+            0,
+            TileBounds {
+                left: 0,
+                bottom: 0,
+                right: 1,
+                top: 1,
+            },
+        );
         // get mut 2
         let face2 = facebounds.get_mut(2.into());
-        face2.insert(0, TileBounds { left: 0, bottom: 0, right: 2, top: 2 });
+        face2.insert(
+            0,
+            TileBounds {
+                left: 0,
+                bottom: 0,
+                right: 2,
+                top: 2,
+            },
+        );
         // get mut 3
         let face3 = facebounds.get_mut(3.into());
-        face3.insert(0, TileBounds { left: 0, bottom: 0, right: 3, top: 3 });
+        face3.insert(
+            0,
+            TileBounds {
+                left: 0,
+                bottom: 0,
+                right: 3,
+                top: 3,
+            },
+        );
         // get mut 4
         let face4 = facebounds.get_mut(4.into());
-        face4.insert(0, TileBounds { left: 0, bottom: 0, right: 4, top: 4 });
+        face4.insert(
+            0,
+            TileBounds {
+                left: 0,
+                bottom: 0,
+                right: 4,
+                top: 4,
+            },
+        );
         // get mut 5
         let face5 = facebounds.get_mut(5.into());
-        face5.insert(0, TileBounds { left: 0, bottom: 0, right: 5, top: 5 });
-    
+        face5.insert(
+            0,
+            TileBounds {
+                left: 0,
+                bottom: 0,
+                right: 5,
+                top: 5,
+            },
+        );
+
         // now get for all 5:
         // get 0
-        assert_eq!(facebounds.get(0.into()).get(&0).unwrap(), &TileBounds { left: 0, bottom: 0, right: 0, top: 0 });
+        assert_eq!(
+            facebounds.get(0.into()).get(&0).unwrap(),
+            &TileBounds {
+                left: 0,
+                bottom: 0,
+                right: 0,
+                top: 0
+            }
+        );
         // get 1
-        assert_eq!(facebounds.get(1.into()).get(&0).unwrap(), &TileBounds { left: 0, bottom: 0, right: 1, top: 1 });
+        assert_eq!(
+            facebounds.get(1.into()).get(&0).unwrap(),
+            &TileBounds {
+                left: 0,
+                bottom: 0,
+                right: 1,
+                top: 1
+            }
+        );
         // get 2
-        assert_eq!(facebounds.get(2.into()).get(&0).unwrap(), &TileBounds { left: 0, bottom: 0, right: 2, top: 2 });
+        assert_eq!(
+            facebounds.get(2.into()).get(&0).unwrap(),
+            &TileBounds {
+                left: 0,
+                bottom: 0,
+                right: 2,
+                top: 2
+            }
+        );
         // get 3
-        assert_eq!(facebounds.get(3.into()).get(&0).unwrap(), &TileBounds { left: 0, bottom: 0, right: 3, top: 3 });
+        assert_eq!(
+            facebounds.get(3.into()).get(&0).unwrap(),
+            &TileBounds {
+                left: 0,
+                bottom: 0,
+                right: 3,
+                top: 3
+            }
+        );
         // get 4
-        assert_eq!(facebounds.get(4.into()).get(&0).unwrap(), &TileBounds { left: 0, bottom: 0, right: 4, top: 4 });
+        assert_eq!(
+            facebounds.get(4.into()).get(&0).unwrap(),
+            &TileBounds {
+                left: 0,
+                bottom: 0,
+                right: 4,
+                top: 4
+            }
+        );
         // get 5
-        assert_eq!(facebounds.get(5.into()).get(&0).unwrap(), &TileBounds { left: 0, bottom: 0, right: 5, top: 5 });
+        assert_eq!(
+            facebounds.get(5.into()).get(&0).unwrap(),
+            &TileBounds {
+                left: 0,
+                bottom: 0,
+                right: 5,
+                top: 5
+            }
+        );
 
         // serialize to JSON and back
         let json = serde_json::to_string(&facebounds).unwrap();
@@ -1172,7 +1393,7 @@ mod tests {
     }
 
     #[test]
-    fn test_tippecanoe_metadta() {
+    fn test_tippecanoe_metadata() {
         let meta_str = r#"{
             "name": "test_fixture_1.pmtiles",
             "description": "test_fixture_1.pmtiles",
@@ -1203,7 +1424,7 @@ mod tests {
             }
         }"#;
 
-        let _meta: Metadata = serde_json::from_str(meta_str).unwrap_or_else(|e| panic!("ERROR: {}", e));
-
+        let _meta: Metadata =
+            serde_json::from_str(meta_str).unwrap_or_else(|e| panic!("ERROR: {}", e));
     }
 }
