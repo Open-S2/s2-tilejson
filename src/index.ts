@@ -353,7 +353,7 @@ export class MetadataBuilder {
   addTileWM(zoom: number, x: number, y: number, llBounds: BBox) {
     const metadata = this.#metadata;
     // update tile stats
-    if (metadata.tilestats) metadata.tilestats.total++;
+    if (metadata.tilestats !== undefined) metadata.tilestats.total++;
     this.#faces.add(0);
     this.#addBoundsWM(zoom, x, y);
     // update lon lat
@@ -371,7 +371,7 @@ export class MetadataBuilder {
   addTileS2(face: Face, zoom: number, x: number, y: number, llBounds: BBox): void {
     const metadata = this.#metadata;
     // update tile stats
-    if (metadata.tilestats) {
+    if (metadata.tilestats !== undefined) {
       metadata.tilestats.total++;
       metadata.tilestats[face]++;
     }
