@@ -4,7 +4,7 @@ export type Face = 0 | 1 | 2 | 3 | 4 | 5;
 /** The Bounding box, whether the tile bounds or lon-lat bounds or whatever. */
 export type BBox = [left: number, bottom: number, right: number, top: number];
 
-/** 1: points, 2: lines, 3: polys, 4: points3D, 5: lines3D, 6: polys3D */
+/** 1: points, 2: lines, 3: polys, 4: points3D, 5: lines3D, 6: polys3D, 7: raster */
 export enum DrawType {
   /** Collection of points */
   Points = 1,
@@ -18,6 +18,8 @@ export enum DrawType {
   Lines3D = 5,
   /** Collection of polygons in 3D */
   Polys3D = 6,
+  /** Raster data */
+  Raster = 7,
 }
 
 //? Shapes exist solely to deconstruct and rebuild objects.
@@ -33,9 +35,7 @@ export enum DrawType {
 import ShapeSchema from './shape.schema.json';
 export { ShapeSchema };
 
-/**
- * Primitive types that can be found in a shape
- */
+/** Primitive types that can be found in a shape */
 export type PrimitiveShapes = 'string' | 'f32' | 'f64' | 'u64' | 'i64' | 'bool' | 'null';
 
 /** The Shape Object But the values can only be primitives */

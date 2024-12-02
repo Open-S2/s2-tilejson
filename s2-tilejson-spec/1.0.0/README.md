@@ -343,12 +343,13 @@ The draw type of the layer.
 
 One of:
 
-- 0 Points
-- 1 Lines
-- 2 Polygons
-- 3 Points3D
-- 4 Lines3D
-- 5 Polygons3D
+- 1 Points
+- 2 Lines
+- 3 Polygons
+- 4 Points3D
+- 5 Lines3D
+- 6 Polygons3D
+- 7 Raster
 
 ##### 3.16.2.5 `shape`
 

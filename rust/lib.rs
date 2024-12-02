@@ -105,33 +105,18 @@ where
             where
                 V: SeqAccess<'de>,
             {
-                let left = seq
-                    .next_element()?
-                    .ok_or_else(|| de::Error::invalid_length(0, &self))?;
-                let bottom = seq
-                    .next_element()?
-                    .ok_or_else(|| de::Error::invalid_length(1, &self))?;
-                let right = seq
-                    .next_element()?
-                    .ok_or_else(|| de::Error::invalid_length(2, &self))?;
-                let top = seq
-                    .next_element()?
-                    .ok_or_else(|| de::Error::invalid_length(3, &self))?;
-                Ok(BBox {
-                    left,
-                    bottom,
-                    right,
-                    top,
-                })
+                let left =
+                    seq.next_element()?.ok_or_else(|| de::Error::invalid_length(0, &self))?;
+                let bottom =
+                    seq.next_element()?.ok_or_else(|| de::Error::invalid_length(1, &self))?;
+                let right =
+                    seq.next_element()?.ok_or_else(|| de::Error::invalid_length(2, &self))?;
+                let top = seq.next_element()?.ok_or_else(|| de::Error::invalid_length(3, &self))?;
+                Ok(BBox { left, bottom, right, top })
             }
         }
 
-        deserializer.deserialize_tuple(
-            4,
-            BBoxVisitor {
-                marker: core::marker::PhantomData,
-            },
-        )
+        deserializer.deserialize_tuple(4, BBoxVisitor { marker: core::marker::PhantomData })
     }
 }
 
@@ -156,6 +141,8 @@ pub enum DrawType {
     Lines3D = 5,
     /// Collection of 3D polygons
     Polygons3D = 6,
+    /// Raster data
+    Raster = 7,
 }
 impl From<DrawType> for u8 {
     fn from(draw_type: DrawType) -> Self {
@@ -171,6 +158,7 @@ impl From<u8> for DrawType {
             4 => DrawType::Points3D,
             5 => DrawType::Lines3D,
             6 => DrawType::Polygons3D,
+            7 => DrawType::Raster,
             _ => DrawType::Points,
         }
     }
@@ -199,10 +187,8 @@ impl<'de> Deserialize<'de> for DrawType {
             4 => Ok(DrawType::Points3D),
             5 => Ok(DrawType::Lines3D),
             6 => Ok(DrawType::Polygons3D),
-            _ => Err(serde::de::Error::custom(format!(
-                "unknown DrawType variant: {}",
-                value
-            ))),
+            7 => Ok(DrawType::Raster),
+            _ => Err(serde::de::Error::custom(format!("unknown DrawType variant: {}", value))),
         }
     }
 }
@@ -667,11 +653,7 @@ impl Default for MetadataBuilder {
                 top: -f64::INFINITY,
             },
             faces: BTreeSet::new(),
-            metadata: Metadata {
-                minzoom: 30,
-                maxzoom: 0,
-                ..Metadata::default()
-            },
+            metadata: Metadata { minzoom: 30, maxzoom: 0, ..Metadata::default() },
         }
     }
 }
@@ -725,21 +707,13 @@ impl MetadataBuilder {
 
     /// add an attribution
     pub fn add_attribution(&mut self, display_name: &str, href: &str) {
-        self.metadata
-            .attribution
-            .insert(display_name.into(), href.into());
+        self.metadata.attribution.insert(display_name.into(), href.into());
     }
 
     /// Add the layer metadata
     pub fn add_layer(&mut self, name: &str, layer: &LayerMetaData) {
         // Only insert if the key does not exist
-        if self
-            .metadata
-            .layers
-            .entry(name.into())
-            .or_insert(layer.clone())
-            .eq(&layer)
-        {
+        if self.metadata.layers.entry(name.into()).or_insert(layer.clone()).eq(&layer) {
             // Also add to vector_layers only if the key was not present and the insert was successful
             self.metadata.vector_layers.push(VectorLayer {
                 id: name.into(), // No need to clone again; we use the moved value
@@ -776,15 +750,8 @@ impl MetadataBuilder {
 
     /// Update the center now that all tiles have been added
     fn update_center(&mut self) {
-        let Metadata {
-            minzoom, maxzoom, ..
-        } = self.metadata;
-        let BBox {
-            left,
-            bottom,
-            right,
-            top,
-        } = self.lon_lat_bounds;
+        let Metadata { minzoom, maxzoom, .. } = self.metadata;
+        let BBox { left, bottom, right, top } = self.lon_lat_bounds;
         self.metadata.center.lon = (left + right) / 2.0;
         self.metadata.center.lat = (bottom + top) / 2.0;
         self.metadata.center.zoom = (minzoom + maxzoom) >> 1;
@@ -811,17 +778,12 @@ impl MetadataBuilder {
     fn add_bounds_s2(&mut self, face: Face, zoom: u8, x: u32, y: u32) {
         let x = x as u64;
         let y = y as u64;
-        let bbox = self
-            .metadata
-            .facesbounds
-            .get_mut(face)
-            .entry(zoom)
-            .or_insert(BBox {
-                left: u64::MAX,
-                bottom: u64::MAX,
-                right: 0,
-                top: 0,
-            });
+        let bbox = self.metadata.facesbounds.get_mut(face).entry(zoom).or_insert(BBox {
+            left: u64::MAX,
+            bottom: u64::MAX,
+            right: 0,
+            top: 0,
+        });
 
         bbox.left = bbox.left.min(x);
         bbox.bottom = bbox.bottom.min(y);
@@ -885,12 +847,7 @@ mod tests {
             0,
             0,
             0,
-            &LonLatBounds {
-                left: -60.0,
-                bottom: -20.0,
-                right: 5.0,
-                top: 60.0,
-            },
+            &LonLatBounds { left: -60.0, bottom: -20.0, right: 5.0, top: 60.0 },
         );
         // S2:
         meta_builder.add_tile_s2(
@@ -898,12 +855,7 @@ mod tests {
             5,
             22,
             37,
-            &LonLatBounds {
-                left: -120.0,
-                bottom: -7.0,
-                right: 44.0,
-                top: 72.0,
-            },
+            &LonLatBounds { left: -120.0, bottom: -7.0, right: 44.0, top: 72.0 },
         );
 
         // finally to get the resulting metadata:
@@ -923,26 +875,13 @@ mod tests {
                     "OpenStreetMap".into(),
                     "https://www.openstreetmap.org/copyright/".into()
                 ),]),
-                bounds: BTreeMap::from([(
-                    0,
-                    TileBounds {
-                        left: 0,
-                        bottom: 0,
-                        right: 0,
-                        top: 0
-                    }
-                ),]),
+                bounds: BTreeMap::from([(0, TileBounds { left: 0, bottom: 0, right: 0, top: 0 }),]),
                 faces: Vec::from(&[Face::Face0, Face::Face1]),
                 facesbounds: FaceBounds {
                     face0: BTreeMap::new(),
                     face1: BTreeMap::from([(
                         5,
-                        TileBounds {
-                            left: 22,
-                            bottom: 37,
-                            right: 22,
-                            top: 37
-                        }
+                        TileBounds { left: 22, bottom: 37, right: 22, top: 37 }
                     ),]),
                     face2: BTreeMap::new(),
                     face3: BTreeMap::new(),
@@ -951,11 +890,7 @@ mod tests {
                 },
                 minzoom: 0,
                 maxzoom: 13,
-                center: Center {
-                    lon: -38.0,
-                    lat: 26.0,
-                    zoom: 6
-                },
+                center: Center { lon: -38.0, lat: 26.0, zoom: 6 },
                 tilestats: TileStatsMetadata {
                     total: 2,
                     total_0: 0,
@@ -1017,12 +952,7 @@ mod tests {
 
     #[test]
     fn test_bbox() {
-        let bbox: BBox = BBox {
-            left: 0.0,
-            bottom: 0.0,
-            right: 0.0,
-            top: 0.0,
-        };
+        let bbox: BBox = BBox { left: 0.0, bottom: 0.0, right: 0.0, top: 0.0 };
         // serialize to JSON and back
         let json = serde_json::to_string(&bbox).unwrap();
         assert_eq!(json, r#"[0.0,0.0,0.0,0.0]"#);
@@ -1091,136 +1021,62 @@ mod tests {
         let mut facebounds = FaceBounds::default();
         // get mut
         let face0 = facebounds.get_mut(0.into());
-        face0.insert(
-            0,
-            TileBounds {
-                left: 0,
-                bottom: 0,
-                right: 0,
-                top: 0,
-            },
-        );
+        face0.insert(0, TileBounds { left: 0, bottom: 0, right: 0, top: 0 });
         // get mut 1
         let face1 = facebounds.get_mut(1.into());
-        face1.insert(
-            0,
-            TileBounds {
-                left: 0,
-                bottom: 0,
-                right: 1,
-                top: 1,
-            },
-        );
+        face1.insert(0, TileBounds { left: 0, bottom: 0, right: 1, top: 1 });
         // get mut 2
         let face2 = facebounds.get_mut(2.into());
-        face2.insert(
-            0,
-            TileBounds {
-                left: 0,
-                bottom: 0,
-                right: 2,
-                top: 2,
-            },
-        );
+        face2.insert(0, TileBounds { left: 0, bottom: 0, right: 2, top: 2 });
         // get mut 3
         let face3 = facebounds.get_mut(3.into());
-        face3.insert(
-            0,
-            TileBounds {
-                left: 0,
-                bottom: 0,
-                right: 3,
-                top: 3,
-            },
-        );
+        face3.insert(0, TileBounds { left: 0, bottom: 0, right: 3, top: 3 });
         // get mut 4
         let face4 = facebounds.get_mut(4.into());
-        face4.insert(
-            0,
-            TileBounds {
-                left: 0,
-                bottom: 0,
-                right: 4,
-                top: 4,
-            },
-        );
+        face4.insert(0, TileBounds { left: 0, bottom: 0, right: 4, top: 4 });
         // get mut 5
         let face5 = facebounds.get_mut(5.into());
-        face5.insert(
-            0,
-            TileBounds {
-                left: 0,
-                bottom: 0,
-                right: 5,
-                top: 5,
-            },
-        );
+        face5.insert(0, TileBounds { left: 0, bottom: 0, right: 5, top: 5 });
 
         // now get for all 5:
         // get 0
         assert_eq!(
             facebounds.get(0.into()).get(&0).unwrap(),
-            &TileBounds {
-                left: 0,
-                bottom: 0,
-                right: 0,
-                top: 0
-            }
+            &TileBounds { left: 0, bottom: 0, right: 0, top: 0 }
         );
         // get 1
         assert_eq!(
             facebounds.get(1.into()).get(&0).unwrap(),
-            &TileBounds {
-                left: 0,
-                bottom: 0,
-                right: 1,
-                top: 1
-            }
+            &TileBounds { left: 0, bottom: 0, right: 1, top: 1 }
         );
         // get 2
         assert_eq!(
             facebounds.get(2.into()).get(&0).unwrap(),
-            &TileBounds {
-                left: 0,
-                bottom: 0,
-                right: 2,
-                top: 2
-            }
+            &TileBounds { left: 0, bottom: 0, right: 2, top: 2 }
         );
         // get 3
         assert_eq!(
             facebounds.get(3.into()).get(&0).unwrap(),
-            &TileBounds {
-                left: 0,
-                bottom: 0,
-                right: 3,
-                top: 3
-            }
+            &TileBounds { left: 0, bottom: 0, right: 3, top: 3 }
         );
         // get 4
         assert_eq!(
             facebounds.get(4.into()).get(&0).unwrap(),
-            &TileBounds {
-                left: 0,
-                bottom: 0,
-                right: 4,
-                top: 4
-            }
+            &TileBounds { left: 0, bottom: 0, right: 4, top: 4 }
         );
         // get 5
         assert_eq!(
             facebounds.get(5.into()).get(&0).unwrap(),
-            &TileBounds {
-                left: 0,
-                bottom: 0,
-                right: 5,
-                top: 5
-            }
+            &TileBounds { left: 0, bottom: 0, right: 5, top: 5 }
         );
 
         // serialize to JSON and back
         let json = serde_json::to_string(&facebounds).unwrap();
-        assert_eq!(json, "{\"0\":{\"0\":[0,0,0,0]},\"1\":{\"0\":[0,0,1,1]},\"2\":{\"0\":[0,0,2,2]},\"3\":{\"0\":[0,0,3,3]},\"4\":{\"0\":[0,0,4,4]},\"5\":{\"0\":[0,0,5,5]}}");
+        assert_eq!(
+            json,
+            "{\"0\":{\"0\":[0,0,0,0]},\"1\":{\"0\":[0,0,1,1]},\"2\":{\"0\":[0,0,2,2]},\"3\":{\"0\"\
+             :[0,0,3,3]},\"4\":{\"0\":[0,0,4,4]},\"5\":{\"0\":[0,0,5,5]}}"
+        );
         let facebounds2 = serde_json::from_str(&json).unwrap();
         assert_eq!(facebounds, facebounds2);
     }
@@ -1234,7 +1090,8 @@ mod tests {
         assert_eq!(DrawType::from(4), DrawType::Points3D);
         assert_eq!(DrawType::from(5), DrawType::Lines3D);
         assert_eq!(DrawType::from(6), DrawType::Polygons3D);
-        assert_eq!(DrawType::from(7), DrawType::Points);
+        assert_eq!(DrawType::from(7), DrawType::Raster);
+        assert_eq!(DrawType::from(8), DrawType::Points);
 
         assert_eq!(1, u8::from(DrawType::Points));
         assert_eq!(2, u8::from(DrawType::Lines));
@@ -1242,6 +1099,7 @@ mod tests {
         assert_eq!(4, u8::from(DrawType::Points3D));
         assert_eq!(5, u8::from(DrawType::Lines3D));
         assert_eq!(6, u8::from(DrawType::Polygons3D));
+        assert_eq!(7, u8::from(DrawType::Raster));
 
         // check json is the number value
         let json = serde_json::to_string(&DrawType::Points).unwrap();
@@ -1264,7 +1122,10 @@ mod tests {
         let drawtype: DrawType = serde_json::from_str("6").unwrap();
         assert_eq!(drawtype, DrawType::Polygons3D);
 
-        assert!(serde_json::from_str::<DrawType>("7").is_err());
+        let drawtype: DrawType = serde_json::from_str("7").unwrap();
+        assert_eq!(drawtype, DrawType::Raster);
+
+        assert!(serde_json::from_str::<DrawType>("8").is_err());
     }
 
     // SourceType
