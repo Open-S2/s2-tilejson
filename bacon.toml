@@ -27,7 +27,6 @@ need_stdout = false
 command = [
     "cargo",
     "test",
-    "--lib",
     "--color",
     "always",
     "--",
@@ -43,7 +42,7 @@ need_stdout = true
 command = [
     "sh",
     "-c",
-    "cargo tarpaulin --lib --out xml > /dev/null 2>&1 && pycobertura show cobertura.xml",
+    "cargo tarpaulin --skip-clean --color always --out xml > /dev/null 2>&1 && pycobertura show cobertura.xml",
 ]
 need_stdout = true
 
