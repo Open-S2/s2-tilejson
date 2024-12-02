@@ -40,12 +40,7 @@ fn main() {
         0,
         0,
         0,
-        &LonLatBounds {
-            left: -60.0,
-            bottom: -20.0,
-            right: 5.0,
-            top: 60.0,
-        },
+        &LonLatBounds { left: -60.0, bottom: -20.0, right: 5.0, top: 60.0 },
     );
     // S2:
     meta_builder.add_tile_s2(
@@ -53,12 +48,7 @@ fn main() {
         5,
         22,
         37,
-        &LonLatBounds {
-            left: -120.0,
-            bottom: -7.0,
-            right: 44.0,
-            top: 72.0,
-        },
+        &LonLatBounds { left: -120.0, bottom: -7.0, right: 44.0, top: 72.0 },
     );
 
     // finally to get the resulting metadata:
