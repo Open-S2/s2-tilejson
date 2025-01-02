@@ -93,6 +93,18 @@ metaBuilder.addTileS2(face, zoom, x, y, lonLatBoundsForTile)
 const metadata: Metadata = metaBuilder.commit()
 ```
 
+If you're not sure which tilejson you are reading (Mapbox's spec or S2's spec), you can treat the input as either:
+
+```ts
+import { toMetadata } from 's2-tilejson'
+
+import type { Metadata, Metadatas } from 's2-tilejson'
+
+const metadata: Metadata = toMetadata(input as Metadatas)
+```
+
+this helps with typesafety and type checking. The only major important differences in usecases is that Mapbox spec treats the variable `tiles` as a list of input URLs and `center` is an array instead of an object.
+
 ### Creating and Validating your Shapes
 
 Shapes define the type of data that can be stored in the vector tile. They are explained in the [specification](https://github.com/Open-S2/open-vector-tile/tree/master/vector-tile-spec/1.0.0#44-shapes).

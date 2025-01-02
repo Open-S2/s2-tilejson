@@ -45,7 +45,7 @@ The following describes the structure of a S2-TileJSON object. Implementations M
 
 *The word "implementation" in the following sections refers to services or tools that serve, generate, or validate S2-TileJSON objects.*
 
-### 3.1 `s2tilejson`
+### 3.1 `s2-tilejson`
 
 REQUIRED. String.
 

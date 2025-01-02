@@ -1,8 +1,7 @@
-import { DrawType } from '../src';
-import { MetadataBuilder } from '../src';
+import { DrawType, MetadataBuilder, toMetadata } from '../src';
 import { expect, test } from 'bun:test';
 
-import type { LayerMetaData, Metadata, Shape } from '../src';
+import type { LayerMetaData, MapboxTileJSONMetadata, Metadata, Shape } from '../src';
 
 test('basic metadata', () => {
   const metaBuilder = new MetadataBuilder();
@@ -107,6 +106,106 @@ test('basic metadata', () => {
         maxzoom: 13,
         minzoom: 0,
         fields: {},
+      },
+    ],
+    version: '1.0.0',
+  });
+});
+
+test('Mapbox Metadata', () => {
+  const mapboxSpec: MapboxTileJSONMetadata = {
+    tilejson: '3.0.0',
+    name: 'OpenStreetMap',
+    description: 'A free editable map of the whole world.',
+    version: '1.0.0',
+    attribution: '(c) OpenStreetMap contributors, CC-BY-SA',
+    scheme: 'xyz',
+    tiles: [
+      'https://a.tile.custom-osm-tiles.org/{z}/{x}/{y}.mvt',
+      'https://b.tile.custom-osm-tiles.org/{z}/{x}/{y}.mvt',
+      'https://c.tile.custom-osm-tiles.org/{z}/{x}/{y}.mvt',
+    ],
+    minzoom: 0,
+    maxzoom: 18,
+    bounds: [-180, -85, 180, 85],
+    fillzoom: 6,
+    something_custom: 'this is my unique field',
+    vector_layers: [
+      {
+        id: 'telephone',
+        fields: {
+          phone_number: 'the phone number',
+          payment: 'how to pay',
+        },
+      },
+      {
+        id: 'bicycle_parking',
+        fields: {
+          type: 'the type of bike parking',
+          year_installed: 'the year the bike parking was installed',
+        },
+      },
+      {
+        id: 'showers',
+        fields: {
+          water_temperature: 'the maximum water temperature',
+          wear_sandles: 'whether you should wear sandles or not',
+          wheelchair: 'is the shower wheelchair friendly?',
+        },
+      },
+    ],
+  };
+
+  const s2Spec = toMetadata(mapboxSpec);
+  expect(s2Spec).toEqual({
+    attribution: {},
+    bounds: {},
+    center: {
+      lat: 0,
+      lon: 0,
+      zoom: 0,
+    },
+    description: 'A free editable map of the whole world.',
+    encoding: 'none',
+    extension: 'tile',
+    faces: [0],
+    facesbounds: {
+      '0': {},
+      '1': {},
+      '2': {},
+      '3': {},
+      '4': {},
+      '5': {},
+    },
+    layers: {},
+    maxzoom: 18,
+    minzoom: 0,
+    name: 'OpenStreetMap',
+    s2tilejson: '1.0.0',
+    scheme: 'xyz',
+    type: 'vector',
+    vector_layers: [
+      {
+        fields: {
+          payment: 'how to pay',
+          phone_number: 'the phone number',
+        },
+        id: 'telephone',
+      },
+      {
+        fields: {
+          type: 'the type of bike parking',
+          year_installed: 'the year the bike parking was installed',
+        },
+        id: 'bicycle_parking',
+      },
+      {
+        fields: {
+          water_temperature: 'the maximum water temperature',
+          wear_sandles: 'whether you should wear sandles or not',
+          wheelchair: 'is the shower wheelchair friendly?',
+        },
+        id: 'showers',
       },
     ],
     version: '1.0.0',

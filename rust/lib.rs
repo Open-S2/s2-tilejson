@@ -17,7 +17,8 @@ use alloc::string::String;
 use alloc::vec::Vec;
 
 /// S2 Face
-#[derive(Serialize, Deserialize, Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[repr(u8)] // Ensures the enum variants are represented as u8 integers
 pub enum Face {
     /// Face 0
     Face0 = 0,
@@ -46,6 +47,32 @@ impl From<u8> for Face {
             4 => Face::Face4,
             5 => Face::Face5,
             _ => Face::Face0,
+        }
+    }
+}
+impl serde::Serialize for Face {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        serializer.serialize_u8(*self as u8)
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for Face {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let value = u8::deserialize(deserializer)?;
+        match value {
+            0 => Ok(Face::Face0),
+            1 => Ok(Face::Face1),
+            2 => Ok(Face::Face2),
+            3 => Ok(Face::Face3),
+            4 => Ok(Face::Face4),
+            5 => Ok(Face::Face5),
+            _ => Err(serde::de::Error::custom("Invalid face value")),
         }
     }
 }
@@ -553,7 +580,7 @@ pub struct Center {
     pub zoom: u8,
 }
 
-/// Metadata for the tile data
+/// S2 TileJSON Metadata for the tile data
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct Metadata {
     /// The version of the s2-tilejson spec
@@ -632,6 +659,87 @@ impl Default for Metadata {
             layers: LayersMetaData::default(),
             tilestats: TileStatsMetadata::default(),
             vector_layers: Vec::new(),
+        }
+    }
+}
+
+/// # TileJSON V3.0.0
+///
+/// ## NOTES
+/// You never have to use this. Parsing/conversion will be done for you. by using:
+///
+/// ```rs
+/// let meta: Metadata =
+///   serde_json::from_str(meta_str).unwrap_or_else(|e| panic!("ERROR: {}", e));
+/// ```
+///
+/// Represents a TileJSON metadata object for the old Mapbox spec.
+/// ## Links
+/// [TileJSON Spec](https://github.com/mapbox/tilejson-spec/blob/master/3.0.0/schema.json)
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+pub struct MapboxTileJSONMetadata {
+    /// Version of the TileJSON spec used.
+    /// Matches the pattern: `\d+\.\d+\.\d+\w?[\w\d]*`.
+    pub tilejson: String,
+    /// Array of tile URL templates.
+    pub tiles: Vec<String>,
+    /// Array of vector layer metadata.
+    pub vector_layers: Vec<VectorLayer>,
+    /// Attribution string.
+    pub attribution: Option<String>,
+    /// Bounding box array [west, south, east, north].
+    pub bounds: Option<BBox>,
+    /// Center coordinate array [longitude, latitude, zoom].
+    pub center: Option<[f64; 3]>,
+    /// Array of data source URLs.
+    pub data: Option<Vec<String>>,
+    /// Description string.
+    pub description: Option<String>,
+    /// Fill zoom level. Must be between 0 and 30.
+    pub fillzoom: Option<u8>,
+    /// Array of UTFGrid URL templates.
+    pub grids: Option<Vec<String>>,
+    /// Legend of the tileset.
+    pub legend: Option<String>,
+    /// Maximum zoom level. Must be between 0 and 30.
+    pub maxzoom: Option<u8>,
+    /// Minimum zoom level. Must be between 0 and 30.
+    pub minzoom: Option<u8>,
+    /// Name of the tileset.
+    pub name: Option<String>,
+    /// Tile scheme, e.g., `xyz` or `tms`.
+    pub scheme: Option<Scheme>,
+    /// Template for interactivity.
+    pub template: Option<String>,
+    /// Version of the tileset. Matches the pattern: `\d+\.\d+\.\d+\w?[\w\d]*`.
+    pub version: Option<String>,
+}
+impl MapboxTileJSONMetadata {
+    /// Converts a MapboxTileJSONMetadata to a Metadata
+    pub fn to_metadata(&self) -> Metadata {
+        Metadata {
+            s2tilejson: "1.0.0".into(),
+            version: self.version.clone().unwrap_or("1.0.0".into()),
+            name: self.name.clone().unwrap_or("default".into()),
+            scheme: self.scheme.clone().unwrap_or_default(),
+            description: self.description.clone().unwrap_or("Built with s2maps-cli".into()),
+            type_: SourceType::default(),
+            extension: "pbf".into(),
+            faces: Vec::from([Face::Face0]),
+            bounds: WMBounds::default(),
+            facesbounds: FaceBounds::default(),
+            minzoom: self.minzoom.unwrap_or(0),
+            maxzoom: self.maxzoom.unwrap_or(27),
+            center: Center {
+                lon: self.center.unwrap_or([0.0, 0.0, 0.0])[0],
+                lat: self.center.unwrap_or([0.0, 0.0, 0.0])[1],
+                zoom: self.center.unwrap_or([0.0, 0.0, 0.0])[2] as u8,
+            },
+            attribution: BTreeMap::new(),
+            layers: LayersMetaData::default(),
+            tilestats: TileStatsMetadata::default(),
+            vector_layers: self.vector_layers.clone(),
+            encoding: Encoding::default(),
         }
     }
 }
@@ -803,6 +911,7 @@ impl MetadataBuilder {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use alloc::vec;
 
     #[test]
     fn it_works() {
@@ -931,6 +1040,14 @@ mod tests {
                 }]),
             }
         );
+
+        let meta_str = serde_json::to_string(&resulting_metadata).unwrap();
+
+        assert_eq!(meta_str, "{\"s2tilejson\":\"1.0.0\",\"version\":\"1.0.0\",\"name\":\"OSM\",\"scheme\":\"fzxy\",\"description\":\"A free editable map of the whole world.\",\"type\":\"vector\",\"extension\":\"pbf\",\"encoding\":\"none\",\"faces\":[0,1],\"bounds\":{\"0\":[0,0,0,0]},\"facesbounds\":{\"0\":{},\"1\":{\"5\":[22,37,22,37]},\"2\":{},\"3\":{},\"4\":{},\"5\":{}},\"minzoom\":0,\"maxzoom\":13,\"center\":{\"lon\":-38.0,\"lat\":26.0,\"zoom\":6},\"attribution\":{\"OpenStreetMap\":\"https://www.openstreetmap.org/copyright/\"},\"layers\":{\"water_lines\":{\"description\":\"water_lines\",\"minzoom\":0,\"maxzoom\":13,\"draw_types\":[2],\"shape\":{\"class\":\"string\",\"info\":{\"name\":\"string\",\"value\":\"i64\"},\"offset\":\"f64\"}}},\"tilestats\":{\"total\":2,\"0\":0,\"1\":1,\"2\":0,\"3\":0,\"4\":0,\"5\":0},\"vector_layers\":[{\"id\":\"water_lines\",\"description\":\"water_lines\",\"minzoom\":0,\"maxzoom\":13,\"fields\":{}}]}");
+
+        let meta_reparsed: Metadata =
+            serde_json::from_str(&meta_str).unwrap_or_else(|e| panic!("ERROR: {}", e));
+        assert_eq!(meta_reparsed, resulting_metadata);
     }
 
     #[test]
@@ -1287,5 +1404,78 @@ mod tests {
 
         let _meta: Metadata =
             serde_json::from_str(meta_str).unwrap_or_else(|e| panic!("ERROR: {}", e));
+    }
+
+    #[test]
+    fn test_mapbox_metadata() {
+        let meta_str = r#"{
+            "tilejson": "3.0.0",
+            "name": "OpenStreetMap",
+            "description": "A free editable map of the whole world.",
+            "version": "1.0.0",
+            "attribution": "(c) OpenStreetMap contributors, CC-BY-SA",
+            "scheme": "xyz",
+            "tiles": [
+                "https://a.tile.custom-osm-tiles.org/{z}/{x}/{y}.mvt",
+                "https://b.tile.custom-osm-tiles.org/{z}/{x}/{y}.mvt",
+                "https://c.tile.custom-osm-tiles.org/{z}/{x}/{y}.mvt"
+            ],
+            "minzoom": 0,
+            "maxzoom": 18,
+            "bounds": [-180, -85, 180, 85],
+            "fillzoom": 6,
+            "something_custom": "this is my unique field",
+            "vector_layers": [
+                {
+                    "id": "telephone",
+                    "fields": {
+                        "phone_number": "the phone number",
+                        "payment": "how to pay"
+                    }
+                },
+                {
+                    "id": "bicycle_parking",
+                    "fields": {
+                        "type": "the type of bike parking",
+                        "year_installed": "the year the bike parking was installed"
+                    }
+                },
+                {
+                    "id": "showers",
+                    "fields": {
+                        "water_temperature": "the maximum water temperature",
+                        "wear_sandles": "whether you should wear sandles or not",
+                        "wheelchair": "is the shower wheelchair friendly?"
+                    }
+                }
+            ]
+        }"#;
+
+        let meta_mapbox: MapboxTileJSONMetadata =
+            serde_json::from_str(meta_str).unwrap_or_else(|e| panic!("ERROR: {}", e));
+        let meta_new = meta_mapbox.to_metadata();
+        assert_eq!(
+            meta_new,
+            Metadata {
+                name: "OpenStreetMap".into(),
+                description: "A free editable map of the whole world.".into(),
+                version: "1.0.0".into(),
+                scheme: Scheme::Xyz,
+                type_: "vector".into(),
+                encoding: "none".into(),
+                extension: "pbf".into(),
+                attribution: BTreeMap::new(),
+                vector_layers: meta_mapbox.vector_layers.clone(),
+                maxzoom: 18,
+                minzoom: 0,
+                center: Center { lat: 0.0, lon: 0.0, zoom: 0 },
+                bounds: WMBounds::default(),
+                faces: vec![Face::Face0],
+                facesbounds: FaceBounds::default(),
+                tilestats: TileStatsMetadata::default(),
+                layers: LayersMetaData::default(),
+                s2tilejson: "1.0.0".into(),
+            },
+        );
     }
 }

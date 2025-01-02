@@ -145,11 +145,18 @@ export type Encoding = 'gz' | 'br' | 'none' | 'zstd';
 
 /** Old spec tracks basic vector data */
 export interface VectorLayer {
+  /** Unique identifier of the layer */
   id: string;
+  /** Description of the layer */
   description?: string;
+  /** Minimum zoom level for the layer */
   minzoom?: number;
+  /** Maximum zoom level for the layer */
   maxzoom?: number;
+  /** Field metadata for the layer. */
   fields: Record<string, string>;
+  /** Allow additional properties */
+  [key: string]: unknown;
 }
 
 /**
@@ -162,12 +169,18 @@ export type Scheme = 'fzxy' | 'tfzxy' | 'xyz' | 'txyz' | 'tms';
 
 /** Store where the center of the data lives */
 export interface Center {
+  /** the center longitude */
   lon: number;
+  /** the center latitude */
   lat: number;
+  /** the zoom level */
   zoom: number;
 }
 
-/** Metadata for the tile data */
+/**
+ * # S2 TileJSON Metadata
+ * Metadata describing a collection of S2 or WM tiles and how to access them.
+ */
 export interface Metadata {
   /** The version of the s2-tilejson spec */
   s2tilejson: string;
@@ -205,6 +218,8 @@ export interface Metadata {
   tilestats?: TileStatsMetadata;
   /** Old spec, track basic layer metadata */
   vector_layers: VectorLayer[];
+  /** Allow additional properties */
+  [key: string]: unknown;
 }
 
 /** Builder class to help build the metadata */
@@ -222,27 +237,12 @@ export class MetadataBuilder {
     encoding: 'none',
     faces: [],
     bounds: {},
-    facesbounds: {
-      0: {},
-      1: {},
-      2: {},
-      3: {},
-      4: {},
-      5: {},
-    },
+    facesbounds: { 0: {}, 1: {}, 2: {}, 3: {}, 4: {}, 5: {} },
     minzoom: Infinity,
     maxzoom: -Infinity,
     center: { lon: 0, lat: 0, zoom: 0 },
     attribution: {},
-    tilestats: {
-      total: 0,
-      0: 0,
-      1: 0,
-      2: 0,
-      3: 0,
-      4: 0,
-      5: 0,
-    },
+    tilestats: { total: 0, 0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
     layers: {},
     vector_layers: [],
   };
@@ -441,5 +441,101 @@ export class MetadataBuilder {
     this.#lonLatBounds[1] = Math.min(this.#lonLatBounds[1], minlat);
     this.#lonLatBounds[2] = Math.max(this.#lonLatBounds[2], maxlon);
     this.#lonLatBounds[3] = Math.max(this.#lonLatBounds[3], maxlat);
+  }
+}
+
+/**
+ * # TileJSON V3.0.0
+ *
+ * Represents a TileJSON metadata object.
+ * ## Links
+ * [TileJSON Spec](https://github.com/mapbox/tilejson-spec/blob/master/3.0.0/schema.json)
+ */
+export interface MapboxTileJSONMetadata {
+  /**
+   * Version of the TileJSON spec used.
+   * Matches the pattern: `\d+\.\d+\.\d+\w?[\w\d]*`.
+   */
+  tilejson: string;
+  /** Array of tile URL templates. */
+  tiles: string[];
+  /** Array of vector layer metadata. */
+  vector_layers: VectorLayer[];
+  /** Attribution string. */
+  attribution?: string;
+  /** Bounding box array [west, south, east, north]. */
+  bounds?: BBox;
+  /** Center coordinate array [longitude, latitude, zoom]. */
+  center?: [lon: number, lat: number, zoom: number];
+  /** Array of data source URLs. */
+  data?: string[];
+  /** Description of the tileset. */
+  description?: string;
+  /** Fill zoom level. Must be between 0 and 30. */
+  fillzoom?: number;
+  /** Array of UTFGrid URL templates. */
+  grids?: string[];
+  /** Legend of the tileset. */
+  legend?: string;
+  /** Maximum zoom level. Must be between 0 and 30. */
+  maxzoom?: number;
+  /** Minimum zoom level. Must be between 0 and 30. */
+  minzoom?: number;
+  /** Name of the tileset. */
+  name?: string;
+  /** Tile scheme, e.g., `xyz` or `tms`. */
+  scheme?: Scheme;
+  /** Template for interactivity. */
+  template?: string;
+  /** Version of the tileset. Matches the pattern: `\d+\.\d+\.\d+\w?[\w\d]*`. */
+  version?: string;
+  /** Allow additional properties */
+  [key: string]: unknown;
+}
+
+/** When the input is unknown, it can be either an S2 TileJSON or a Mapbox TileJSON */
+export type Metadatas = Metadata | MapboxTileJSONMetadata;
+
+/**
+ * If you're not sure which tilejson you are reading (Mapbox's spec or S2's spec), you can treat
+ * the input as either and ensure the output is the same
+ * @param metadatas - the S2 TileJSON or Mapbox TileJSON
+ * @returns - S2 TileJSON
+ */
+export function toMetadata(metadatas: Metadatas): Metadata {
+  if ('s2tilejson' in metadatas) {
+    return metadatas as Metadata;
+  } else {
+    const [lon, lat, zoom] = metadatas.center ?? [0, 0, 0];
+    return {
+      s2tilejson: '1.0.0',
+      version: metadatas.version ?? '1.0.0',
+      name: metadatas.name ?? 'Converted from Mapbox TileJSON to S2 TileJSON',
+      extension: metadatas.tiles[0].split('.')[1],
+      scheme: metadatas.scheme ?? 'xyz',
+      description: metadatas.description ?? '',
+      /** The type of the data */
+      type: 'vector',
+      /** The encoding of the data */
+      encoding: 'none',
+      /** List of faces that have data */
+      faces: [0],
+      /** WM Tile fetching bounds. Helpful to not make unecessary requests for tiles we know don't exist */
+      bounds: {},
+      /** S2 Tile fetching bounds. Helpful to not make unecessary requests for tiles we know don't exist */
+      facesbounds: { 0: {}, 1: {}, 2: {}, 3: {}, 4: {}, 5: {} },
+      /** minzoom at which to request tiles. [default=0] */
+      minzoom: metadatas.minzoom ?? 0,
+      /** maxzoom at which to request tiles. [default=27] */
+      maxzoom: metadatas.maxzoom ?? 27,
+      /** The center of the data */
+      center: { lon, lat, zoom },
+      /** { ['human readable string']: 'href' } */
+      attribution: {},
+      /** Track layer metadata */
+      layers: {},
+      /** Old spec, track basic layer metadata */
+      vector_layers: metadatas.vector_layers,
+    };
   }
 }
