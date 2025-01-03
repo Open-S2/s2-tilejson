@@ -211,3 +211,48 @@ test('Mapbox Metadata', () => {
     version: '1.0.0',
   });
 });
+
+test('Minimal metadata', () => {
+  const mini = {
+    bounds: [-180, -85, 180, 85],
+    name: 'Mapbox Satellite',
+    scheme: 'xyz',
+    format: 'zxy',
+    type: 'raster',
+    extension: 'webp',
+    encoding: 'none',
+    minzoom: 0,
+    maxzoom: 3,
+  };
+  const s2Spec = toMetadata(mini as unknown as MapboxTileJSONMetadata);
+  expect(s2Spec).toEqual({
+    attribution: {},
+    bounds: {},
+    center: {
+      lat: 0,
+      lon: 0,
+      zoom: 0,
+    },
+    description: '',
+    encoding: 'none',
+    extension: 'pbf',
+    faces: [0],
+    facesbounds: {
+      '0': {},
+      '1': {},
+      '2': {},
+      '3': {},
+      '4': {},
+      '5': {},
+    },
+    layers: {},
+    maxzoom: 3,
+    minzoom: 0,
+    name: 'Mapbox Satellite',
+    s2tilejson: '1.0.0',
+    scheme: 'xyz',
+    type: 'vector',
+    vector_layers: [],
+    version: '1.0.0',
+  });
+});

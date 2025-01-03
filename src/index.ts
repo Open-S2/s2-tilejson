@@ -511,7 +511,7 @@ export function toMetadata(metadatas: Metadatas): Metadata {
       s2tilejson: '1.0.0',
       version: metadatas.version ?? '1.0.0',
       name: metadatas.name ?? 'Converted from Mapbox TileJSON to S2 TileJSON',
-      extension: metadatas.tiles[0].split('.')[1],
+      extension: metadatas.tiles?.[0].split('.')[1] ?? 'pbf',
       scheme: metadatas.scheme ?? 'xyz',
       description: metadatas.description ?? '',
       /** The type of the data */
@@ -535,7 +535,7 @@ export function toMetadata(metadatas: Metadatas): Metadata {
       /** Track layer metadata */
       layers: {},
       /** Old spec, track basic layer metadata */
-      vector_layers: metadatas.vector_layers,
+      vector_layers: metadatas.vector_layers ?? [],
     };
   }
 }
