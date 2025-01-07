@@ -5,7 +5,7 @@ export type Face = 0 | 1 | 2 | 3 | 4 | 5;
 export type BBox = [left: number, bottom: number, right: number, top: number];
 
 /** 1: points, 2: lines, 3: polys, 4: points3D, 5: lines3D, 6: polys3D, 7: raster */
-export enum DrawType {
+export const enum DrawType {
   /** Collection of points */
   Points = 1,
   /** Collection of lines */
