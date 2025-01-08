@@ -5,22 +5,17 @@ export type Face = 0 | 1 | 2 | 3 | 4 | 5;
 export type BBox = [left: number, bottom: number, right: number, top: number];
 
 /** 1: points, 2: lines, 3: polys, 4: points3D, 5: lines3D, 6: polys3D, 7: raster */
-export const enum DrawType {
-  /** Collection of points */
-  Points = 1,
-  /** Collection of lines */
-  Lines = 2,
-  /** Collection of polygons */
-  Polys = 3,
-  /** Collection of points in 3D */
-  Points3D = 4,
-  /** Collection of lines in 3D */
-  Lines3D = 5,
-  /** Collection of polygons in 3D */
-  Polys3D = 6,
-  /** Raster data */
-  Raster = 7,
-}
+export const DrawType = {
+  Points: 1,
+  Lines: 2,
+  Polys: 3,
+  Points3D: 4,
+  Lines3D: 5,
+  Polys3D: 6,
+  Raster: 7,
+} as const;
+/** 1: points, 2: lines, 3: polys, 4: points3D, 5: lines3D, 6: polys3D, 7: raster */
+export type DrawType = (typeof DrawType)[keyof typeof DrawType];
 
 //? Shapes exist solely to deconstruct and rebuild objects.
 //?
