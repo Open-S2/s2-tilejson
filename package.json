@@ -1,6 +1,6 @@
 {
   "name": "s2-tilejson",
-  "version": "1.8.2",
+  "version": "1.8.3",
   "description": "Backwards compatible JSON format for describing s2 map tilesets.",
   "type": "module",
   "keywords": [
@@ -29,7 +29,7 @@
     "prettier": "bunx prettier src test tools benchmarks --check",
     "prettier:fix": "bunx prettier -- --write",
     "format": "bunx prettier:fix && bun run lint:fix",
-    "build": "rm -rf dist && mkdir dist && rm -f -- tsconfig.tsbuildinfo && tsc && bun run build.ts",
+    "build": "rm -rf dist && mkdir dist && rm -f -- tsconfig.tsbuildinfo && tsc",
     "types:bundle": "bun run types:build && node scripts/types.mjs",
     "prepublishOnly": "bun run lint+build+test+docs",
     "package-check": "package-check",
