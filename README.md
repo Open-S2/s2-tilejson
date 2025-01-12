@@ -61,7 +61,7 @@ metaBuilder.setName('OSM')
 metaBuilder.setDescription('A free editable map of the whole world.')
 metaBuilder.setVersion('1.0.0')
 metaBuilder.setScheme('fzxy') // 'fzxy' | 'tfzxy' | 'xyz' | 'txyz' | 'tms'
-metaBuilder.setType('vector') // 'vector' | 'json' | 'raster' | 'raster-dem' | 'sensor' | 'markers'
+metaBuilder.setType('vector') // 'vector' | 'json' | 'raster' | 'raster-dem' | 'grid' | 'markers'
 metaBuilder.setEncoding('none') // 'gz' | 'br' | 'none'
 metaBuilder.addAttribution('OpenStreetMap', 'https://www.openstreetmap.org/copyright/')
 

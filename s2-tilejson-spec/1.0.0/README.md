@@ -350,6 +350,7 @@ One of:
 - 5 Lines3D
 - 6 Polygons3D
 - 7 Raster
+- 8 Grid
 
 ##### 3.16.2.5 `shape`
 
@@ -447,7 +448,7 @@ Tile count statistics. Includes an all encompassing count called `total`. If usi
 
 REQUIRED. String. Default: `"vector"`.
 
-The type of the tiles being used. May be one of `"vector"`, `"json"`, `"raster"`, `"raster-dem"`, `"markers"`, or `"sensor"`. Because this value is often misused, you should support an "unknown" type but more often then not the string value is `"overlay"`.
+The type of the tiles being used. May be one of `"vector"`, `"json"`, `"raster"`, `"raster-dem"`, `"markers"`, or `"grid"`. Because this value is often misused, you should support an "unknown" type but more often then not the string value is `"overlay"`.
 
 ```JSON
 {
