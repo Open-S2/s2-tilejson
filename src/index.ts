@@ -4,7 +4,7 @@ export type Face = 0 | 1 | 2 | 3 | 4 | 5;
 /** The Bounding box, whether the tile bounds or lon-lat bounds or whatever. */
 export type BBox = [left: number, bottom: number, right: number, top: number];
 
-/** 1: points, 2: lines, 3: polys, 4: points3D, 5: lines3D, 6: polys3D, 7: raster */
+/** 1: points, 2: lines, 3: polys, 4: points3D, 5: lines3D, 6: polys3D, 7: raster, 8: grid data */
 export const DrawType = {
   Points: 1,
   Lines: 2,
@@ -13,8 +13,9 @@ export const DrawType = {
   Lines3D: 5,
   Polys3D: 6,
   Raster: 7,
+  Grid: 8,
 } as const;
-/** 1: points, 2: lines, 3: polys, 4: points3D, 5: lines3D, 6: polys3D, 7: raster */
+/** 1: points, 2: lines, 3: polys, 4: points3D, 5: lines3D, 6: polys3D, 7: raster, 8: grid data */
 export type DrawType = (typeof DrawType)[keyof typeof DrawType];
 
 //? Shapes exist solely to deconstruct and rebuild objects.
@@ -50,7 +51,7 @@ export type ShapePrimitiveType = PrimitiveShapes | ShapePrimitive;
  */
 export type ShapeType = PrimitiveShapes | [ShapePrimitiveType] | Shape;
 
-/** The Shape Object */
+/** The Shape Object. Assume an empty shape if raster or grid data */
 export interface Shape {
   [key: string]: ShapeType;
 }
@@ -131,7 +132,7 @@ export type SourceType =
   | 'json'
   | 'raster'
   | 'raster-dem'
-  | 'sensor'
+  | 'grid'
   | 'markers'
   | 'overlay';
 

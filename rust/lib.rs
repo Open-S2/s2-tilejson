@@ -170,6 +170,8 @@ pub enum DrawType {
     Polygons3D = 6,
     /// Raster data
     Raster = 7,
+    /// Collection of points
+    Grid = 8,
 }
 impl From<DrawType> for u8 {
     fn from(draw_type: DrawType) -> Self {
@@ -186,6 +188,7 @@ impl From<u8> for DrawType {
             5 => DrawType::Lines3D,
             6 => DrawType::Polygons3D,
             7 => DrawType::Raster,
+            8 => DrawType::Grid,
             _ => DrawType::Points,
         }
     }
@@ -215,6 +218,7 @@ impl<'de> Deserialize<'de> for DrawType {
             5 => Ok(DrawType::Lines3D),
             6 => Ok(DrawType::Polygons3D),
             7 => Ok(DrawType::Raster),
+            8 => Ok(DrawType::Grid),
             _ => Err(serde::de::Error::custom(format!("unknown DrawType variant: {}", value))),
         }
     }
@@ -422,8 +426,8 @@ pub enum SourceType {
     /// Raster DEM data
     #[serde(rename = "raster-dem")]
     RasterDem,
-    /// Sensor data
-    Sensor,
+    /// Grid data
+    Grid,
     /// Marker data
     Markers,
     /// Unknown source type
@@ -436,7 +440,7 @@ impl From<&str> for SourceType {
             "json" => SourceType::Json,
             "raster" => SourceType::Raster,
             "raster-dem" => SourceType::RasterDem,
-            "sensor" => SourceType::Sensor,
+            "grid" => SourceType::Grid,
             "markers" => SourceType::Markers,
             _ => SourceType::Unknown,
         }
@@ -922,7 +926,7 @@ mod tests {
         meta_builder.set_description("A free editable map of the whole world.".into());
         meta_builder.set_version("1.0.0".into());
         meta_builder.set_scheme("fzxy".into()); // 'fzxy' | 'tfzxy' | 'xyz' | 'txyz' | 'tms'
-        meta_builder.set_type("vector".into()); // 'vector' | 'json' | 'raster' | 'raster-dem' | 'sensor' | 'markers'
+        meta_builder.set_type("vector".into()); // 'vector' | 'json' | 'raster' | 'raster-dem' | 'grid' | 'markers'
         meta_builder.set_encoding("none".into()); // 'gz' | 'br' | 'none'
         meta_builder.set_extension("pbf".into());
         meta_builder.add_attribution("OpenStreetMap", "https://www.openstreetmap.org/copyright/");
@@ -1208,7 +1212,7 @@ mod tests {
         assert_eq!(DrawType::from(5), DrawType::Lines3D);
         assert_eq!(DrawType::from(6), DrawType::Polygons3D);
         assert_eq!(DrawType::from(7), DrawType::Raster);
-        assert_eq!(DrawType::from(8), DrawType::Points);
+        assert_eq!(DrawType::from(8), DrawType::Grid);
 
         assert_eq!(1, u8::from(DrawType::Points));
         assert_eq!(2, u8::from(DrawType::Lines));
@@ -1217,6 +1221,7 @@ mod tests {
         assert_eq!(5, u8::from(DrawType::Lines3D));
         assert_eq!(6, u8::from(DrawType::Polygons3D));
         assert_eq!(7, u8::from(DrawType::Raster));
+        assert_eq!(8, u8::from(DrawType::Grid));
 
         // check json is the number value
         let json = serde_json::to_string(&DrawType::Points).unwrap();
@@ -1242,7 +1247,10 @@ mod tests {
         let drawtype: DrawType = serde_json::from_str("7").unwrap();
         assert_eq!(drawtype, DrawType::Raster);
 
-        assert!(serde_json::from_str::<DrawType>("8").is_err());
+        let drawtype: DrawType = serde_json::from_str("8").unwrap();
+        assert_eq!(drawtype, DrawType::Grid);
+
+        assert!(serde_json::from_str::<DrawType>("9").is_err());
     }
 
     // SourceType
@@ -1253,7 +1261,7 @@ mod tests {
         assert_eq!(SourceType::from("json"), SourceType::Json);
         assert_eq!(SourceType::from("raster"), SourceType::Raster);
         assert_eq!(SourceType::from("raster-dem"), SourceType::RasterDem);
-        assert_eq!(SourceType::from("sensor"), SourceType::Sensor);
+        assert_eq!(SourceType::from("grid"), SourceType::Grid);
         assert_eq!(SourceType::from("markers"), SourceType::Markers);
         assert_eq!(SourceType::from("overlay"), SourceType::Unknown);
 
@@ -1281,11 +1289,11 @@ mod tests {
         let sourcetype: SourceType = serde_json::from_str(&json).unwrap();
         assert_eq!(sourcetype, SourceType::RasterDem);
 
-        // json sensor
-        let json = serde_json::to_string(&SourceType::Sensor).unwrap();
-        assert_eq!(json, "\"sensor\"");
+        // json grid
+        let json = serde_json::to_string(&SourceType::Grid).unwrap();
+        assert_eq!(json, "\"grid\"");
         let sourcetype: SourceType = serde_json::from_str(&json).unwrap();
-        assert_eq!(sourcetype, SourceType::Sensor);
+        assert_eq!(sourcetype, SourceType::Grid);
 
         // json markers
         let json = serde_json::to_string(&SourceType::Markers).unwrap();
