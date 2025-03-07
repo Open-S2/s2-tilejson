@@ -50,20 +50,20 @@
   "homepage": "https://github.com/Open-S2/s2-tilejson#readme",
   "devDependencies": {
     "@skypack/package-check": "^0.2.2",
-    "@types/bun": "^1.1.15",
-    "@types/node": "^22.10.5",
+    "@types/bun": "^1.2.4",
+    "@types/node": "^22.13.9",
     "@types/pbf": "^3.0.5",
     "ajv": "^8.17.1",
     "coveralls": "^3.1.1",
-    "eslint": "^9.17.0",
-    "eslint-config-prettier": "^9.1.0",
-    "eslint-plugin-jsdoc": "^50.6.1",
-    "eslint-plugin-prettier": "^5.2.1",
+    "eslint": "^9.21.0",
+    "eslint-config-prettier": "^10.1.0",
+    "eslint-plugin-jsdoc": "^50.6.3",
+    "eslint-plugin-prettier": "^5.2.3",
     "eslint-plugin-tsdoc": "^0.4.0",
-    "prettier": "^3.4.2",
-    "typedoc": "^0.27.6",
+    "prettier": "^3.5.3",
+    "typedoc": "^0.27.9",
     "typedoc-plugin-coverage": "^3.4.1",
-    "typescript": "^5.7.2",
-    "typescript-eslint": "^8.19.1"
+    "typescript": "^5.8.2",
+    "typescript-eslint": "^8.26.0"
   }
 }
