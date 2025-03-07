@@ -4,15 +4,33 @@ export type Face = 0 | 1 | 2 | 3 | 4 | 5;
 /** The Bounding box, whether the tile bounds or lon-lat bounds or whatever. */
 export type BBox = [left: number, bottom: number, right: number, top: number];
 
-/** 1: points, 2: lines, 3: polys, 4: points3D, 5: lines3D, 6: polys3D, 7: raster, 8: grid data */
+/**
+ * List of possible draw types:
+ * 1: points,
+ * 2: lines,
+ * 3: polys,
+ * 4: points3D,
+ * 5: lines3D,
+ * 6: polys3D,
+ * 7: raster,
+ * 8: grid data
+ */
 export const DrawType = {
+  /** POINTS = 1 */
   Points: 1,
+  /** LINES = 2 */
   Lines: 2,
+  /** POLYS = 3 */
   Polys: 3,
+  /** POINTS 3D = 4 */
   Points3D: 4,
+  /** LINES 3D = 5 */
   Lines3D: 5,
+  /** POLYS 3D = 6 */
   Polys3D: 6,
+  /** RASTER = 7 */
   Raster: 7,
+  /** GRID = 8 */
   Grid: 8,
 } as const;
 /** 1: points, 2: lines, 3: polys, 4: points3D, 5: lines3D, 6: polys3D, 7: raster, 8: grid data */

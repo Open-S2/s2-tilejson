@@ -1,4 +1,5 @@
-use s2_tilejson::{DrawType, Face, LayerMetaData, LonLatBounds, Metadata, MetadataBuilder, Shape};
+use s2_tilejson::{DrawType, LayerMetaData, LonLatBounds, Metadata, MetadataBuilder, Shape};
+use s2json::Face;
 
 fn main() {
     let mut meta_builder = MetadataBuilder::default();

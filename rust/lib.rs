@@ -4,148 +4,16 @@
 
 extern crate alloc;
 
-use serde::de::{self, SeqAccess, Visitor};
-use serde::ser::SerializeTuple;
+use s2json::{BBox, Face};
+
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 use alloc::borrow::ToOwned;
 use alloc::collections::BTreeMap;
 use alloc::collections::BTreeSet;
-use alloc::fmt;
 use alloc::format;
 use alloc::string::String;
 use alloc::vec::Vec;
-
-/// S2 Face
-#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
-#[repr(u8)] // Ensures the enum variants are represented as u8 integers
-pub enum Face {
-    /// Face 0
-    Face0 = 0,
-    /// Face 1
-    Face1 = 1,
-    /// Face 2
-    Face2 = 2,
-    /// Face 3
-    Face3 = 3,
-    /// Face 4
-    Face4 = 4,
-    /// Face 5
-    Face5 = 5,
-}
-impl From<Face> for u8 {
-    fn from(face: Face) -> Self {
-        face as u8
-    }
-}
-impl From<u8> for Face {
-    fn from(face: u8) -> Self {
-        match face {
-            1 => Face::Face1,
-            2 => Face::Face2,
-            3 => Face::Face3,
-            4 => Face::Face4,
-            5 => Face::Face5,
-            _ => Face::Face0,
-        }
-    }
-}
-impl serde::Serialize for Face {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        serializer.serialize_u8(*self as u8)
-    }
-}
-
-impl<'de> serde::Deserialize<'de> for Face {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        let value = u8::deserialize(deserializer)?;
-        match value {
-            0 => Ok(Face::Face0),
-            1 => Ok(Face::Face1),
-            2 => Ok(Face::Face2),
-            3 => Ok(Face::Face3),
-            4 => Ok(Face::Face4),
-            5 => Ok(Face::Face5),
-            _ => Err(serde::de::Error::custom("Invalid face value")),
-        }
-    }
-}
-
-/// The Bounding box, whether the tile bounds or lon-lat bounds or whatever.
-#[derive(Copy, Clone, Debug, PartialEq, PartialOrd)]
-pub struct BBox<T = f64> {
-    /// left most point; Also represents the left-most longitude
-    pub left: T,
-    /// bottom most point; Also represents the bottom-most latitude
-    pub bottom: T,
-    /// right most point; Also represents the right-most longitude
-    pub right: T,
-    /// top most point; Also represents the top-most latitude
-    pub top: T,
-}
-impl<T> Serialize for BBox<T>
-where
-    T: Serialize + Copy,
-{
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        let mut seq = serializer.serialize_tuple(4)?;
-        seq.serialize_element(&self.left)?;
-        seq.serialize_element(&self.bottom)?;
-        seq.serialize_element(&self.right)?;
-        seq.serialize_element(&self.top)?;
-        seq.end()
-    }
-}
-
-impl<'de, T> Deserialize<'de> for BBox<T>
-where
-    T: Deserialize<'de> + Copy,
-{
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        struct BBoxVisitor<T> {
-            marker: core::marker::PhantomData<T>,
-        }
-
-        impl<'de, T> Visitor<'de> for BBoxVisitor<T>
-        where
-            T: Deserialize<'de> + Copy,
-        {
-            type Value = BBox<T>;
-
-            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-                formatter.write_str("a sequence of four numbers")
-            }
-
-            fn visit_seq<V>(self, mut seq: V) -> Result<BBox<T>, V::Error>
-            where
-                V: SeqAccess<'de>,
-            {
-                let left =
-                    seq.next_element()?.ok_or_else(|| de::Error::invalid_length(0, &self))?;
-                let bottom =
-                    seq.next_element()?.ok_or_else(|| de::Error::invalid_length(1, &self))?;
-                let right =
-                    seq.next_element()?.ok_or_else(|| de::Error::invalid_length(2, &self))?;
-                let top = seq.next_element()?.ok_or_else(|| de::Error::invalid_length(3, &self))?;
-                Ok(BBox { left, bottom, right, top })
-            }
-        }
-
-        deserializer.deserialize_tuple(4, BBoxVisitor { marker: core::marker::PhantomData })
-    }
-}
 
 /// Use bounds as floating point numbers for longitude and latitude
 pub type LonLatBounds = BBox<f64>;
