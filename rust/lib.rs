@@ -1,19 +1,19 @@
 #![no_std]
+#![forbid(unsafe_code)]
 #![deny(missing_docs)]
 //! The `s2-tilejson` Rust crate... TODO
 
 extern crate alloc;
 
-use s2json::{BBox, Face};
-
+use alloc::{
+    borrow::ToOwned,
+    collections::{BTreeMap, BTreeSet},
+    format,
+    string::String,
+    vec::Vec,
+};
+pub use s2json::*;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
-
-use alloc::borrow::ToOwned;
-use alloc::collections::BTreeMap;
-use alloc::collections::BTreeSet;
-use alloc::format;
-use alloc::string::String;
-use alloc::vec::Vec;
 
 /// Use bounds as floating point numbers for longitude and latitude
 pub type LonLatBounds = BBox<f64>;
@@ -49,7 +49,6 @@ impl From<DrawType> for u8 {
 impl From<u8> for DrawType {
     fn from(draw_type: u8) -> Self {
         match draw_type {
-            1 => DrawType::Points,
             2 => DrawType::Lines,
             3 => DrawType::Polygons,
             4 => DrawType::Points3D,
@@ -57,7 +56,7 @@ impl From<u8> for DrawType {
             6 => DrawType::Polygons3D,
             7 => DrawType::Raster,
             8 => DrawType::Grid,
-            _ => DrawType::Points,
+            _ => DrawType::Points, // 1 and default
         }
     }
 }
@@ -91,63 +90,6 @@ impl<'de> Deserialize<'de> for DrawType {
         }
     }
 }
-
-// Shapes exist solely to deconstruct and rebuild objects.
-//
-// Shape limitations:
-// - all keys are strings.
-// - all values are either:
-// - - primitive types: strings, numbers (f32, f64, u64, i64), true, false, or null
-// - - sub types: an array of a shape or a nested object which is itself a shape
-// - - if the sub type is an array, ensure all elements are of the same type
-// The interfaces below help describe how shapes are built by the user.
-
-/// Primitive types that can be found in a shape
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-#[serde(rename_all = "lowercase")]
-pub enum PrimitiveShape {
-    /// String type utf8 encoded
-    String,
-    /// unsigned 64 bit integer
-    U64,
-    /// signed 64 bit integer
-    I64,
-    /// floating point number
-    F32,
-    /// double precision floating point number
-    F64,
-    /// boolean
-    Bool,
-    /// null
-    Null,
-}
-
-/// Arrays may contain either a primitive or an object whose values are primitives
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-#[serde(untagged)]
-pub enum ShapePrimitiveType {
-    /// Primitive type
-    Primitive(PrimitiveShape),
-    /// Nested shape that can only contain primitives
-    NestedPrimitive(BTreeMap<String, PrimitiveShape>),
-}
-
-/// Shape types that can be found in a shapes object.
-/// Either a primitive, an array containing any type, or a nested shape.
-/// If the type is an array, all elements must be the same type
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-#[serde(untagged)]
-pub enum ShapeType {
-    /// Primitive type
-    Primitive(PrimitiveShape),
-    /// Nested shape that can only contain primitives
-    Array(Vec<ShapePrimitiveType>),
-    /// Nested shape
-    Nested(Shape),
-}
-
-/// The Shape Object
-pub type Shape = BTreeMap<String, ShapeType>;
 
 /// Each layer has metadata associated with it. Defined as blueprints pre-construction of vector data.
 #[derive(Serialize, Deserialize, Debug, Default, Clone, PartialEq)]
@@ -784,6 +726,7 @@ impl MetadataBuilder {
 mod tests {
     use super::*;
     use alloc::vec;
+    use s2json::{PrimitiveShape, ShapeType};
 
     #[test]
     fn it_works() {
@@ -888,12 +831,12 @@ mod tests {
                         minzoom: 0,
                         maxzoom: 13,
                         draw_types: Vec::from(&[DrawType::Lines]),
-                        shape: BTreeMap::from([
+                        shape: Shape::from([
                             ("class".into(), ShapeType::Primitive(PrimitiveShape::String)),
                             ("offset".into(), ShapeType::Primitive(PrimitiveShape::F64)),
                             (
                                 "info".into(),
-                                ShapeType::Nested(BTreeMap::from([
+                                ShapeType::Nested(Shape::from([
                                     ("name".into(), ShapeType::Primitive(PrimitiveShape::String)),
                                     ("value".into(), ShapeType::Primitive(PrimitiveShape::I64)),
                                 ]))
