@@ -1,6 +1,6 @@
 [package]
 name = "s2-tilejson"
-version = "1.1.0"
+version = "1.2.0"
 edition = "2021"
 authors = ["Craig O'Connor <oconnorct1@gmail.com>"]
 description = "Backwards compatible JSON format for describing s2 map tilesets."
@@ -38,7 +38,7 @@ bench = true
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-s2json = "1.27"
+s2json = "1"
 serde = { version = "1.0", default-features = false, features = ["alloc", "derive"] }
 serde_json = { version = "1.0", default-features = false, features = ["alloc"] }
 

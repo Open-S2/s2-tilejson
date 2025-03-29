@@ -7,6 +7,7 @@ extern crate alloc;
 
 use alloc::{
     borrow::ToOwned,
+    boxed::Box,
     collections::{BTreeMap, BTreeSet},
     format,
     string::String,
@@ -554,6 +555,25 @@ impl MapboxTileJSONMetadata {
             tilestats: TileStatsMetadata::default(),
             vector_layers: self.vector_layers.clone(),
             encoding: Encoding::default(),
+        }
+    }
+}
+
+/// If we don't know which spec we are reading, we can treat the input as either
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[serde(untagged)]
+pub enum UnknownMetadata {
+    /// New spec
+    Metadata(Box<Metadata>),
+    /// Old spec
+    Mapbox(Box<MapboxTileJSONMetadata>),
+}
+impl UnknownMetadata {
+    /// Converts a UnknownMetadata to a Metadata
+    pub fn to_metadata(&self) -> Metadata {
+        match self {
+            UnknownMetadata::Metadata(m) => *m.clone(),
+            UnknownMetadata::Mapbox(m) => m.to_metadata(),
         }
     }
 }
@@ -1273,6 +1293,33 @@ mod tests {
         let meta_mapbox: MapboxTileJSONMetadata =
             serde_json::from_str(meta_str).unwrap_or_else(|e| panic!("ERROR: {}", e));
         let meta_new = meta_mapbox.to_metadata();
+        assert_eq!(
+            meta_new,
+            Metadata {
+                name: "OpenStreetMap".into(),
+                description: "A free editable map of the whole world.".into(),
+                version: "1.0.0".into(),
+                scheme: Scheme::Xyz,
+                type_: "vector".into(),
+                encoding: "none".into(),
+                extension: "pbf".into(),
+                attribution: BTreeMap::new(),
+                vector_layers: meta_mapbox.vector_layers.clone(),
+                maxzoom: 18,
+                minzoom: 0,
+                center: Center { lat: 0.0, lon: 0.0, zoom: 0 },
+                bounds: WMBounds::default(),
+                faces: vec![Face::Face0],
+                facesbounds: FaceBounds::default(),
+                tilestats: TileStatsMetadata::default(),
+                layers: LayersMetaData::default(),
+                s2tilejson: "1.0.0".into(),
+            },
+        );
+
+        let meta_mapbox_from_unknown: UnknownMetadata =
+            serde_json::from_str(meta_str).unwrap_or_else(|e| panic!("ERROR: {}", e));
+        let meta_new = meta_mapbox_from_unknown.to_metadata();
         assert_eq!(
             meta_new,
             Metadata {
