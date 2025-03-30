@@ -411,7 +411,7 @@ pub struct Metadata {
     pub description: String,
     /// The type of the data
     #[serde(rename = "type")]
-    pub type_: SourceType,
+    pub r#type: SourceType,
     /// The extension to use when requesting a tile
     pub extension: String,
     /// The encoding of the data
@@ -445,7 +445,7 @@ impl Default for Metadata {
             name: "default".into(),
             scheme: Scheme::default(),
             description: "Built with s2maps-cli".into(),
-            type_: SourceType::default(),
+            r#type: SourceType::default(),
             extension: "pbf".into(),
             encoding: Encoding::default(),
             faces: Vec::new(),
@@ -513,6 +513,8 @@ pub struct MapboxTileJSONMetadata {
     pub template: Option<String>,
     /// Version of the tileset. Matches the pattern: `\d+\.\d+\.\d+\w?[\w\d]*`.
     pub version: Option<String>,
+    /// Added type because it may be included
+    pub r#type: Option<SourceType>,
 }
 impl MapboxTileJSONMetadata {
     /// Converts a MapboxTileJSONMetadata to a Metadata
@@ -523,7 +525,7 @@ impl MapboxTileJSONMetadata {
             name: self.name.clone().unwrap_or("default".into()),
             scheme: self.scheme.clone().unwrap_or_default(),
             description: self.description.clone().unwrap_or("Built with s2maps-cli".into()),
-            type_: SourceType::default(),
+            r#type: self.r#type.clone().unwrap_or_default(),
             extension: "pbf".into(),
             faces: Vec::from([Face::Face0]),
             bounds: WMBounds::default(),
@@ -613,8 +615,8 @@ impl MetadataBuilder {
     }
 
     /// Set the type of the data. [default=vector]
-    pub fn set_type(&mut self, type_: SourceType) {
-        self.metadata.type_ = type_;
+    pub fn set_type(&mut self, r#type: SourceType) {
+        self.metadata.r#type = r#type;
     }
 
     /// Set the version of the data
@@ -797,7 +799,7 @@ mod tests {
                 description: "A free editable map of the whole world.".into(),
                 version: "1.0.0".into(),
                 scheme: "fzxy".into(),
-                type_: "vector".into(),
+                r#type: "vector".into(),
                 encoding: "none".into(),
                 extension: "pbf".into(),
                 attribution: BTreeMap::from([(
@@ -1285,7 +1287,7 @@ mod tests {
                 description: "A free editable map of the whole world.".into(),
                 version: "1.0.0".into(),
                 scheme: Scheme::Xyz,
-                type_: "vector".into(),
+                r#type: "vector".into(),
                 encoding: "none".into(),
                 extension: "pbf".into(),
                 attribution: BTreeMap::new(),
@@ -1312,7 +1314,7 @@ mod tests {
                 description: "A free editable map of the whole world.".into(),
                 version: "1.0.0".into(),
                 scheme: Scheme::Xyz,
-                type_: "vector".into(),
+                r#type: "vector".into(),
                 encoding: "none".into(),
                 extension: "pbf".into(),
                 attribution: BTreeMap::new(),
@@ -1363,7 +1365,7 @@ mod tests {
                 name: "Mapbox Satellite".into(),
                 scheme: Scheme::Xyz,
                 description: "Built with s2maps-cli".into(),
-                type_: SourceType::Vector,
+                r#type: SourceType::Raster,
                 extension: "pbf".into(),
                 encoding: Encoding::None,
                 faces: vec![Face::Face0],
