@@ -397,60 +397,44 @@ pub struct Center {
 
 /// S2 TileJSON Metadata for the tile data
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[serde(default)]
 pub struct Metadata {
     /// The version of the s2-tilejson spec
-    #[serde(default)]
     pub s2tilejson: String,
     /// The version of the data
-    #[serde(default)]
     pub version: String,
     /// The name of the data
-    #[serde(default)]
     pub name: String,
     /// The scheme of the data
-    #[serde(default)]
     pub scheme: Scheme,
     /// The description of the data
-    #[serde(default)]
     pub description: String,
     /// The type of the data
-    #[serde(rename = "type", default)]
+    #[serde(rename = "type")]
     pub type_: SourceType,
     /// The extension to use when requesting a tile
-    #[serde(default)]
     pub extension: String,
     /// The encoding of the data
-    #[serde(default)]
     pub encoding: Encoding,
     /// List of faces that have data
-    #[serde(default)]
     pub faces: Vec<Face>,
     /// WM Tile fetching bounds. Helpful to not make unecessary requests for tiles we know don't exist
-    #[serde(default)]
     pub bounds: WMBounds,
     /// S2 Tile fetching bounds. Helpful to not make unecessary requests for tiles we know don't exist
-    #[serde(default)]
     pub facesbounds: FaceBounds,
     /// minzoom at which to request tiles. [default=0]
-    #[serde(default)]
     pub minzoom: u8,
     /// maxzoom at which to request tiles. [default=27]
-    #[serde(default)]
     pub maxzoom: u8,
     /// The center of the data
-    #[serde(default)]
     pub center: Center,
     /// { ['human readable string']: 'href' }
-    #[serde(default)]
     pub attribution: Attribution,
     /// Track layer metadata
-    #[serde(default)]
     pub layers: LayersMetaData,
     /// Track tile stats for each face and total overall
-    #[serde(default)]
     pub tilestats: TileStatsMetadata,
     /// Old spec, track basic layer metadata
-    #[serde(default)]
     pub vector_layers: Vec<VectorLayer>,
 }
 impl Default for Metadata {
@@ -491,7 +475,8 @@ impl Default for Metadata {
 /// Represents a TileJSON metadata object for the old Mapbox spec.
 /// ## Links
 /// [TileJSON Spec](https://github.com/mapbox/tilejson-spec/blob/master/3.0.0/schema.json)
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, Clone, Default, PartialEq)]
+#[serde(default)]
 pub struct MapboxTileJSONMetadata {
     /// Version of the TileJSON spec used.
     /// Matches the pattern: `\d+\.\d+\.\d+\w?[\w\d]*`.
@@ -1342,6 +1327,71 @@ mod tests {
                 layers: LayersMetaData::default(),
                 s2tilejson: "1.0.0".into(),
             },
+        );
+    }
+
+    #[test]
+    fn test_malformed_metadata() {
+        let meta_str = r#"{
+            "s2tilejson": "1.0.0",
+            "bounds": [
+                -180,
+                -85,
+                180,
+                85
+            ],
+            "name": "Mapbox Satellite",
+            "scheme": "xyz",
+            "format": "zxy",
+            "type": "raster",
+            "extension": "webp",
+            "encoding": "none",
+            "minzoom": 0,
+            "maxzoom": 3
+        }
+        "#;
+
+        let malformed_success: UnknownMetadata =
+            serde_json::from_str(meta_str).unwrap_or_else(|e| panic!("ERROR: {}", e));
+
+        let meta: Metadata = malformed_success.to_metadata();
+        assert_eq!(
+            meta,
+            Metadata {
+                s2tilejson: "1.0.0".into(),
+                version: "1.0.0".into(),
+                name: "Mapbox Satellite".into(),
+                scheme: Scheme::Xyz,
+                description: "Built with s2maps-cli".into(),
+                type_: SourceType::Vector,
+                extension: "pbf".into(),
+                encoding: Encoding::None,
+                faces: vec![Face::Face0],
+                bounds: BTreeMap::default(),
+                facesbounds: FaceBounds {
+                    face0: BTreeMap::default(),
+                    face1: BTreeMap::default(),
+                    face2: BTreeMap::default(),
+                    face3: BTreeMap::default(),
+                    face4: BTreeMap::default(),
+                    face5: BTreeMap::default()
+                },
+                minzoom: 0,
+                maxzoom: 3,
+                center: Center { lon: 0.0, lat: 0.0, zoom: 0 },
+                attribution: BTreeMap::default(),
+                layers: BTreeMap::default(),
+                tilestats: TileStatsMetadata {
+                    total: 0,
+                    total_0: 0,
+                    total_1: 0,
+                    total_2: 0,
+                    total_3: 0,
+                    total_4: 0,
+                    total_5: 0
+                },
+                vector_layers: vec![]
+            }
         );
     }
 }
