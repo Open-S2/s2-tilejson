@@ -513,8 +513,13 @@ pub struct MapboxTileJSONMetadata {
     pub template: Option<String>,
     /// Version of the tileset. Matches the pattern: `\d+\.\d+\.\d+\w?[\w\d]*`.
     pub version: Option<String>,
+    // NEW SPEC variables hiding here incase UnknownMetadata parses to Mapbox instead
     /// Added type because it may be included
     pub r#type: Option<SourceType>,
+    /// Extension of the tileset.
+    pub extension: Option<String>,
+    /// Encoding of the tileset.
+    pub encoding: Option<Encoding>,
 }
 impl MapboxTileJSONMetadata {
     /// Converts a MapboxTileJSONMetadata to a Metadata
@@ -526,7 +531,7 @@ impl MapboxTileJSONMetadata {
             scheme: self.scheme.clone().unwrap_or_default(),
             description: self.description.clone().unwrap_or("Built with s2maps-cli".into()),
             r#type: self.r#type.clone().unwrap_or_default(),
-            extension: "pbf".into(),
+            extension: self.extension.clone().unwrap_or("pbf".into()),
             faces: Vec::from([Face::Face0]),
             bounds: WMBounds::default(),
             facesbounds: FaceBounds::default(),
@@ -541,7 +546,7 @@ impl MapboxTileJSONMetadata {
             layers: LayersMetaData::default(),
             tilestats: TileStatsMetadata::default(),
             vector_layers: self.vector_layers.clone(),
-            encoding: Encoding::default(),
+            encoding: self.encoding.clone().unwrap_or(Encoding::None),
         }
     }
 }
@@ -1347,7 +1352,7 @@ mod tests {
             "format": "zxy",
             "type": "raster",
             "extension": "webp",
-            "encoding": "none",
+            "encoding": "gzip",
             "minzoom": 0,
             "maxzoom": 3
         }
@@ -1366,8 +1371,8 @@ mod tests {
                 scheme: Scheme::Xyz,
                 description: "Built with s2maps-cli".into(),
                 r#type: SourceType::Raster,
-                extension: "pbf".into(),
-                encoding: Encoding::None,
+                extension: "webp".into(),
+                encoding: Encoding::Gzip,
                 faces: vec![Face::Face0],
                 bounds: BTreeMap::default(),
                 facesbounds: FaceBounds {
