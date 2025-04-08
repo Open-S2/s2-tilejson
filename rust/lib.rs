@@ -1401,4 +1401,20 @@ mod tests {
             }
         );
     }
+
+    #[test]
+    fn test_faces() {
+        let meta = Metadata {
+            faces: vec![Face::Face0, Face::Face1, Face::Face4, Face::Face5],
+            ..Default::default()
+        };
+
+        let to_string: String = serde_json::to_string(&meta).unwrap();
+        let from_string: Metadata = serde_json::from_str(&to_string).unwrap();
+        assert_eq!(meta, from_string);
+
+        let from_string_unknown: UnknownMetadata = serde_json::from_str(&to_string).unwrap();
+        let from_string: Metadata = from_string_unknown.to_metadata();
+        assert_eq!(meta, from_string);
+    }
 }
