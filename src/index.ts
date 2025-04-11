@@ -104,7 +104,7 @@ export interface TileStatsMetadata {
  * Attribution data is stored in an object.
  * The key is the name of the attribution, and the value is the link
  */
-export type Attribution = Record<string, string>;
+export type Attributions = Record<string, string>;
 
 /** Track the S2 tile bounds of each face and zoom */
 export interface FaceBounds {
@@ -225,7 +225,7 @@ export interface Metadata {
   /** The center of the data */
   center: Center;
   /** { ['human readable string']: 'href' } */
-  attribution: Attribution;
+  attribution: Attributions;
   /** Track layer metadata */
   layers: LayersMetaData;
   /** Track tile stats for each face and total overall */
