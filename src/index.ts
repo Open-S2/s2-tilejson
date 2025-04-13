@@ -225,7 +225,7 @@ export interface Metadata {
   /** The center of the data */
   center: Center;
   /** { ['human readable string']: 'href' } */
-  attribution: Attributions;
+  attributions: Attributions;
   /** Track layer metadata */
   layers: LayersMetaData;
   /** Track tile stats for each face and total overall */
@@ -255,7 +255,7 @@ export class MetadataBuilder {
     minzoom: Infinity,
     maxzoom: -Infinity,
     center: { lon: 0, lat: 0, zoom: 0 },
-    attribution: {},
+    attributions: {},
     tilestats: { total: 0, 0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
     layers: {},
     vector_layers: [],
@@ -333,7 +333,7 @@ export class MetadataBuilder {
    * @param href - link to the attribution
    */
   addAttribution(displayName: string, href: string) {
-    this.#metadata.attribution[displayName] = href;
+    this.#metadata.attributions[displayName] = href;
   }
 
   /**
@@ -545,11 +545,28 @@ export function toMetadata(metadatas: Metadatas): Metadata {
       /** The center of the data */
       center: { lon, lat, zoom },
       /** { ['human readable string']: 'href' } */
-      attribution: {},
+      attributions: extractLinkInfo(metadatas.attribution) ?? {},
       /** Track layer metadata */
       layers: {},
       /** Old spec, track basic layer metadata */
       vector_layers: metadatas.vector_layers ?? [],
     };
+  }
+}
+
+/**
+ * Extract href and text from <a href="href">text</a>
+ * @param htmlString - html string to extract href and text from
+ * @returns - { [name]: href }
+ */
+function extractLinkInfo(htmlString?: string): Record<string, string> | undefined {
+  if (htmlString === undefined) return;
+  const hrefMatch = htmlString.match(/href='([^']*)'/);
+  const textMatch = htmlString.match(/>([^<]*)<\/a>/);
+
+  if (hrefMatch !== null && textMatch !== null) {
+    const hrefValue = hrefMatch[1];
+    const textValue = textMatch[1];
+    return { [textValue]: hrefValue };
   }
 }

@@ -1,6 +1,6 @@
 {
   "name": "s2-tilejson",
-  "version": "1.10.0",
+  "version": "1.11.0",
   "description": "Backwards compatible JSON format for describing s2 map tilesets.",
   "type": "module",
   "keywords": [
@@ -50,13 +50,13 @@
   "homepage": "https://github.com/Open-S2/s2-tilejson#readme",
   "devDependencies": {
     "@skypack/package-check": "^0.2.2",
-    "@types/bun": "^1.2.8",
-    "@types/node": "^22.14.0",
+    "@types/bun": "^1.2.9",
+    "@types/node": "^22.14.1",
     "@types/pbf": "^3.0.5",
     "ajv": "^8.17.1",
     "coveralls": "^3.1.1",
     "eslint": "^9.24.0",
-    "eslint-config-prettier": "^10.1.1",
+    "eslint-config-prettier": "^10.1.2",
     "eslint-plugin-jsdoc": "^50.6.9",
     "eslint-plugin-prettier": "^5.2.6",
     "eslint-plugin-tsdoc": "^0.4.0",

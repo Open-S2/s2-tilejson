@@ -43,7 +43,7 @@ test('basic metadata', () => {
   const resultingMetadata: Metadata = metaBuilder.commit();
 
   expect(resultingMetadata).toEqual({
-    attribution: {
+    attributions: {
       OpenStreetMap: 'https://www.openstreetmap.org/copyright/',
     },
     bounds: {
@@ -118,7 +118,7 @@ test('Mapbox Metadata', () => {
     name: 'OpenStreetMap',
     description: 'A free editable map of the whole world.',
     version: '1.0.0',
-    attribution: '(c) OpenStreetMap contributors, CC-BY-SA',
+    attribution: "<a href='https://openstreetmap.org'>OSM contributors</a>",
     scheme: 'xyz',
     tiles: [
       'https://a.tile.custom-osm-tiles.org/{z}/{x}/{y}.mvt',
@@ -158,7 +158,7 @@ test('Mapbox Metadata', () => {
 
   const s2Spec = toMetadata(mapboxSpec);
   expect(s2Spec).toEqual({
-    attribution: {},
+    attributions: { 'OSM contributors': 'https://openstreetmap.org' },
     bounds: {},
     center: {
       lat: 0,
@@ -226,7 +226,7 @@ test('Minimal metadata', () => {
   };
   const s2Spec = toMetadata(mini as unknown as MapboxTileJSONMetadata);
   expect(s2Spec).toEqual({
-    attribution: {},
+    attributions: {},
     bounds: {},
     center: {
       lat: 0,

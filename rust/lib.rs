@@ -168,7 +168,7 @@ impl TileStatsMetadata {
 
 /// Attribution data is stored in an object.
 /// The key is the name of the attribution, and the value is the link
-pub type Attribution = BTreeMap<String, String>;
+pub type Attributions = BTreeMap<String, String>;
 
 /// Track the S2 tile bounds of each face and zoom
 #[derive(Serialize, Deserialize, Debug, Default, Clone, PartialEq)]
@@ -429,7 +429,7 @@ pub struct Metadata {
     /// The center of the data
     pub center: Center,
     /// { ['human readable string']: 'href' }
-    pub attribution: Attribution,
+    pub attributions: Attributions,
     /// Track layer metadata
     pub layers: LayersMetaData,
     /// Track tile stats for each face and total overall
@@ -454,7 +454,7 @@ impl Default for Metadata {
             minzoom: 0,
             maxzoom: 27,
             center: Center::default(),
-            attribution: BTreeMap::new(),
+            attributions: BTreeMap::new(),
             layers: LayersMetaData::default(),
             tilestats: TileStatsMetadata::default(),
             vector_layers: Vec::new(),
@@ -542,7 +542,8 @@ impl MapboxTileJSONMetadata {
                 lat: self.center.unwrap_or([0.0, 0.0, 0.0])[1],
                 zoom: self.center.unwrap_or([0.0, 0.0, 0.0])[2] as u8,
             },
-            attribution: BTreeMap::new(),
+            attributions: extract_link_info(self.attribution.as_ref().unwrap_or(&"".into()))
+                .unwrap_or_default(),
             layers: LayersMetaData::default(),
             tilestats: TileStatsMetadata::default(),
             vector_layers: self.vector_layers.clone(),
@@ -641,7 +642,7 @@ impl MetadataBuilder {
 
     /// add an attribution
     pub fn add_attribution(&mut self, display_name: &str, href: &str) {
-        self.metadata.attribution.insert(display_name.into(), href.into());
+        self.metadata.attributions.insert(display_name.into(), href.into());
     }
 
     /// Add the layer metadata
@@ -734,6 +735,26 @@ impl MetadataBuilder {
     }
 }
 
+/// Extract the link info from the HTML
+fn extract_link_info(html_string: &str) -> Option<Attributions> {
+    // Find the start and end of the 'href' attribute
+    let href_start = html_string.find("href='")?;
+    let href_value_start = href_start + "href='".len();
+    let href_end = html_string[href_value_start..].find("'")?;
+    let href_value = &html_string[href_value_start..href_value_start + href_end];
+
+    // Find the start and end of the link text
+    let text_start = html_string.find(">")?;
+    let text_value_start = text_start + 1;
+    let text_end = html_string.find("</a>")?;
+    let text_value = &html_string[text_value_start..text_end];
+
+    let mut map = BTreeMap::new();
+    map.insert(text_value.into(), href_value.into());
+
+    Some(map)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -807,7 +828,7 @@ mod tests {
                 r#type: "vector".into(),
                 encoding: "none".into(),
                 extension: "pbf".into(),
-                attribution: BTreeMap::from([(
+                attributions: BTreeMap::from([(
                     "OpenStreetMap".into(),
                     "https://www.openstreetmap.org/copyright/".into()
                 ),]),
@@ -870,7 +891,7 @@ mod tests {
 
         let meta_str = serde_json::to_string(&resulting_metadata).unwrap();
 
-        assert_eq!(meta_str, "{\"s2tilejson\":\"1.0.0\",\"version\":\"1.0.0\",\"name\":\"OSM\",\"scheme\":\"fzxy\",\"description\":\"A free editable map of the whole world.\",\"type\":\"vector\",\"extension\":\"pbf\",\"encoding\":\"none\",\"faces\":[0,1],\"bounds\":{\"0\":[0,0,0,0]},\"facesbounds\":{\"0\":{},\"1\":{\"5\":[22,37,22,37]},\"2\":{},\"3\":{},\"4\":{},\"5\":{}},\"minzoom\":0,\"maxzoom\":13,\"center\":{\"lon\":-38.0,\"lat\":26.0,\"zoom\":6},\"attribution\":{\"OpenStreetMap\":\"https://www.openstreetmap.org/copyright/\"},\"layers\":{\"water_lines\":{\"description\":\"water_lines\",\"minzoom\":0,\"maxzoom\":13,\"draw_types\":[2],\"shape\":{\"class\":\"string\",\"info\":{\"name\":\"string\",\"value\":\"i64\"},\"offset\":\"f64\"}}},\"tilestats\":{\"total\":2,\"0\":0,\"1\":1,\"2\":0,\"3\":0,\"4\":0,\"5\":0},\"vector_layers\":[{\"id\":\"water_lines\",\"description\":\"water_lines\",\"minzoom\":0,\"maxzoom\":13,\"fields\":{}}]}");
+        assert_eq!(meta_str, "{\"s2tilejson\":\"1.0.0\",\"version\":\"1.0.0\",\"name\":\"OSM\",\"scheme\":\"fzxy\",\"description\":\"A free editable map of the whole world.\",\"type\":\"vector\",\"extension\":\"pbf\",\"encoding\":\"none\",\"faces\":[0,1],\"bounds\":{\"0\":[0,0,0,0]},\"facesbounds\":{\"0\":{},\"1\":{\"5\":[22,37,22,37]},\"2\":{},\"3\":{},\"4\":{},\"5\":{}},\"minzoom\":0,\"maxzoom\":13,\"center\":{\"lon\":-38.0,\"lat\":26.0,\"zoom\":6},\"attributions\":{\"OpenStreetMap\":\"https://www.openstreetmap.org/copyright/\"},\"layers\":{\"water_lines\":{\"description\":\"water_lines\",\"minzoom\":0,\"maxzoom\":13,\"draw_types\":[2],\"shape\":{\"class\":\"string\",\"info\":{\"name\":\"string\",\"value\":\"i64\"},\"offset\":\"f64\"}}},\"tilestats\":{\"total\":2,\"0\":0,\"1\":1,\"2\":0,\"3\":0,\"4\":0,\"5\":0},\"vector_layers\":[{\"id\":\"water_lines\",\"description\":\"water_lines\",\"minzoom\":0,\"maxzoom\":13,\"fields\":{}}]}");
 
         let meta_reparsed: Metadata =
             serde_json::from_str(&meta_str).unwrap_or_else(|e| panic!("ERROR: {}", e));
@@ -1244,7 +1265,7 @@ mod tests {
             "name": "OpenStreetMap",
             "description": "A free editable map of the whole world.",
             "version": "1.0.0",
-            "attribution": "(c) OpenStreetMap contributors, CC-BY-SA",
+            "attribution": "<a href='https://openstreetmap.org'>OSM contributors</a>",
             "scheme": "xyz",
             "tiles": [
                 "https://a.tile.custom-osm-tiles.org/{z}/{x}/{y}.mvt",
@@ -1295,7 +1316,10 @@ mod tests {
                 r#type: "vector".into(),
                 encoding: "none".into(),
                 extension: "pbf".into(),
-                attribution: BTreeMap::new(),
+                attributions: BTreeMap::from([(
+                    "OSM contributors".into(),
+                    "https://openstreetmap.org".into()
+                )]),
                 vector_layers: meta_mapbox.vector_layers.clone(),
                 maxzoom: 18,
                 minzoom: 0,
@@ -1322,7 +1346,10 @@ mod tests {
                 r#type: "vector".into(),
                 encoding: "none".into(),
                 extension: "pbf".into(),
-                attribution: BTreeMap::new(),
+                attributions: BTreeMap::from([(
+                    "OSM contributors".into(),
+                    "https://openstreetmap.org".into()
+                )]),
                 vector_layers: meta_mapbox.vector_layers.clone(),
                 maxzoom: 18,
                 minzoom: 0,
@@ -1386,7 +1413,7 @@ mod tests {
                 minzoom: 0,
                 maxzoom: 3,
                 center: Center { lon: 0.0, lat: 0.0, zoom: 0 },
-                attribution: BTreeMap::default(),
+                attributions: BTreeMap::default(),
                 layers: BTreeMap::default(),
                 tilestats: TileStatsMetadata {
                     total: 0,

@@ -3,7 +3,7 @@
     "name": "OpenStreetMap",
     "description": "A free editable map of the whole world.",
     "version": "1.0.0",
-    "attribution": {
+    "attributions": {
         "OpenStreetMap": "https://www.openstreetmap.org/copyright/"
     },
     "scheme": "fzxy",

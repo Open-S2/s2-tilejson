@@ -10,7 +10,7 @@ The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "S
    1. [s2-tilejson](#31-s2-tilejson)
    1. [interval](#32-interval)
    1. [vector_layers](#33-vector_layers)
-   1. [attribution](#34-attribution)
+   1. [attributions](#34-attributions)
    1. [bounds](#35-bounds)
    1. [center](#36-center)
    1. [faces](#37-faces)
@@ -138,17 +138,17 @@ These keys are used to describe the situation where different sets of vector lay
 }
 ```
 
-### 3.4 `attribution`
+### 3.4 `attributions`
 
 OPTIONAL. Object. Default: `null`.
 
-NOTICE: This is a breaking change from the [older tilejson specification](https://github.com/mapbox/tilejson-spec/blob/master/3.0.0/README.md#34-attribution).
+NOTICE: This is a change from the [older tilejson specification](https://github.com/mapbox/tilejson-spec/blob/master/3.0.0/README.md#34-attribution).
 
 Contains a map of attributions to be displayed when the map is shown to a user. The key is the display name and the value is the link to the attribution.
 
 ```JSON
 {
-  "attribution": {
+  "attributions": {
     "OpenStreetMap": "https://www.openstreetmap.org/copyright/",
     "Open S2": "https://opens2.com/legal/attribution"
   }
