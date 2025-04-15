@@ -1,6 +1,6 @@
-import S2TileJSONSchema from './s2tilejson.schema.json';
-import ShapeSchema from './shape.schema.json';
-import TileJSONSchema from './tilejson.schema.json';
+import S2TileJSONSchema from './s2tilejson.schema.json' with { type: 'json' };
+import ShapeSchema from './shape.schema.json' with { type: 'json' };
+import TileJSONSchema from './tilejson.schema.json' with { type: 'json' };
 export { ShapeSchema, TileJSONSchema, S2TileJSONSchema };
 
 /** S2 Face */

@@ -1,6 +1,6 @@
 {
   "name": "s2-tilejson",
-  "version": "1.12.0",
+  "version": "1.13.0",
   "description": "Backwards compatible JSON format for describing s2 map tilesets.",
   "type": "module",
   "keywords": [
