@@ -16,18 +16,19 @@ The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "S
    1. [faces](#37-faces)
    1. [description](#38-description)
    1. [fillzoom](#39-fillzoom)
-   1. [s2bounds](#310-s2bounds)
-   1. [legend](#311-legend)
-   1. [maxzoom](#312-maxzoom)
-   1. [minzoom](#313-minzoom)
-   1. [name](#314-name)
-   1. [scheme](#315-scheme)
-   1. [layers](#316-layers)
-   1. [version](#317-version)
-   1. [tilestats](#318-tilestats)
-   1. [type](#319-type)
-   1. [extension](#320-extension)
-   1. [encoding](#321-encoding)
+   1. [wmbounds](#310-wmbounds)
+   1. [s2bounds](#311-s2bounds)
+   1. [legend](#312-legend)
+   1. [maxzoom](#313-maxzoom)
+   1. [minzoom](#314-minzoom)
+   1. [name](#315-name)
+   1. [scheme](#316-scheme)
+   1. [layers](#317-layers)
+   1. [version](#318-version)
+   1. [tilestats](#319-tilestats)
+   1. [type](#320-type)
+   1. [extension](#321-extension)
+   1. [encoding](#322-encoding)
 1. [Examples](#4-examples)
 1. [Caching](#5-caching)
 
@@ -221,23 +222,7 @@ While TileJSON may specify rules for overzooming tiles, it is ultimately up to t
 }
 ```
 
-### 3.10 `s2bounds`
-
-OPTIONAL. Object. Default: `null`.
-
-This is an S2 specific key. An object that maps each face to its bounds. Instead of tracking lon-lat bounds, it tracks tile bounds to help reduce the number of requests.
-
-Much like how bounds are tracked, facebounds utilize the same format as bounds but map to
-
-```JSON
-{
-  "s2bounds": { // s2bounds[face][zoom] = [...]
-    "0": { "0": [0, 0, 0, 0], "1": [0, 1, 0, 0], "2": [0, 3, 1, 3] },
-  }
-}
-```
-
-### 3.11 `wmbounds`
+### 3.10 `wmbounds`
 
 OPTIONAL. Object. Default: `{}`.
 
@@ -253,7 +238,23 @@ The maximum extent of available map tiles relative to the zoom. Each zoom has it
 },
 ```
 
-### 3.11 `legend`
+### 3.11 `s2bounds`
+
+OPTIONAL. Object. Default: `null`.
+
+This is an S2 specific key. An object that maps each face to its bounds. Instead of tracking lon-lat bounds, it tracks tile bounds to help reduce the number of requests.
+
+Much like how bounds are tracked, facebounds utilize the same format as bounds but map to
+
+```JSON
+{
+  "s2bounds": { // s2bounds[face][zoom] = [...]
+    "0": { "0": [0, 0, 0, 0], "1": [0, 1, 0, 0], "2": [0, 3, 1, 3] },
+  }
+}
+```
+
+### 3.12 `legend`
 
 OPTIONAL. String. Default: `null`.
 
@@ -265,7 +266,7 @@ Contains a legend to be displayed with the map. Implementations MAY decide to tr
 }
 ```
 
-### 3.12 `maxzoom`
+### 3.13 `maxzoom`
 
 REQUIRED. Integer. Default: `30`.
 
@@ -277,7 +278,7 @@ An integer specifying the maximum zoom level. MUST be in range: 0 <= minzoom <= 
 }
 ```
 
-### 3.13 `minzoom`
+### 3.14 `minzoom`
 
 REQUIRED. Integer. Default: `0`.
 
@@ -289,7 +290,7 @@ An integer specifying the minimum zoom level. MUST be in range: 0 <= minzoom <= 
 }
 ```
 
-### 3.14 `name`
+### 3.15 `name`
 
 OPTIONAL. String. Default: `null`.
 
@@ -301,7 +302,7 @@ A name describing the set of tiles. The name can contain any legal character. Im
 }
 ```
 
-### 3.15 `scheme`
+### 3.16 `scheme`
 
 OPTIONAL. String. Default: `"fzxy"`.
 
@@ -315,37 +316,37 @@ S2: May be `"fzxy"` or `"tfzxy"`. This stands for `face`-`zoom`-`x`-`y`. If a `t
 }
 ```
 
-### 3.16 `layers`
+### 3.17 `layers`
 
 REQUIRED. Object. Default: `{}`.
 
 Designed to better support [open-vector-tile](https://github.com/Open-S2/open-vector-tile) data with `shape` types and the more complex nested objects.
 
-#### 3.16.1 `key`
+#### 3.17.1 `key`
 
 The object key is the `name` of the layer.
 
-#### 3.16.2 `value`
+#### 3.17.2 `value`
 
-##### 3.16.2.1 `description`
+##### 3.17.2.1 `description`
 
 OPTIONAL. String. Default: `null`.
 
 The description is used for the layer name in the legend.
 
-##### 3.16.2.2 `minzoom`
+##### 3.17.2.2 `minzoom`
 
 REQUIRED. Unsigned Integer. Default: `null`.
 
 The minimum zoom level of the layer.
 
-##### 3.16.2.3 `maxzoom`
+##### 3.17.2.3 `maxzoom`
 
 REQUIRED. Unsigned Integer. Default: `null`.
 
 The maximum zoom level of the layer.
 
-##### 3.16.2.4 `drawTypes`
+##### 3.17.2.4 `drawTypes`
 
 REQUIRED. Array<Number>. Default: `[]`.
 
@@ -362,7 +363,7 @@ One of:
 - 7 Raster
 - 8 Grid
 
-##### 3.16.2.5 `shape`
+##### 3.17.2.5 `shape`
 
 REQUIRED. Object. Default: `{}`.
 
@@ -392,7 +393,7 @@ Example Shape:
 }
 ```
 
-##### 3.16.2.6 `mShape`
+##### 3.17.2.6 `mShape`
 
 OPTIONAL. Object. Default: `undefined`.
 
@@ -422,7 +423,7 @@ Example Shape:
 }
 ```
 
-### 3.17 `version`
+### 3.18 `version`
 
 OPTIONAL. String. Default: `"1.0.0"`. Matches the pattern: `\\d+\\.\\d+\\.\\d+\\w?[\\w\\d]*`.
 
@@ -434,7 +435,7 @@ A [semver.org](https://semver.org) style version number of the tiles. When chang
 }
 ```
 
-### 3.18 `tilestats`
+### 3.19 `tilestats`
 
 OPTIONAL. Object. Default: `{}`.
 
@@ -454,7 +455,7 @@ Tile count statistics. Includes an all encompassing count called `total`. If usi
 }
 ```
 
-### 3.19 `type`
+### 3.20 `type`
 
 REQUIRED. String. Default: `"vector"`.
 
@@ -466,7 +467,7 @@ The type of the tiles being used. May be one of `"vector"`, `"json"`, `"raster"`
 }
 ```
 
-### 3.20 `extension`
+### 3.21 `extension`
 
 REQUIRED. String. Default: `pbf`.
 
@@ -478,7 +479,7 @@ Explains the extension name attached to the file So if the source url is `https:
 }
 ```
 
-### 3.21 `encoding`
+### 3.22 `encoding`
 
 OPTIONAL. String. Default: `"none"`.
 

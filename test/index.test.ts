@@ -1,5 +1,12 @@
 import Ajv from 'ajv';
-import { DrawType, MetadataBuilder, S2TileJSONSchema, TileJSONSchema, toMetadata } from '../src';
+import {
+  DrawType,
+  MetadataBuilder,
+  S2TileJSONSchema,
+  ShapeSchema,
+  TileJSONSchema,
+  toMetadata,
+} from '../src';
 import { expect, test } from 'bun:test';
 
 import type { LayerMetaData, MapboxTileJSONMetadata, Metadata, Shape } from '../src';
@@ -301,4 +308,20 @@ test('validate the tilejson example', async () => {
 
   const s2Validate = ajv.compile(S2TileJSONSchema);
   expect(s2Validate(exampleJSON_S2)).toBeTrue();
+});
+
+test('validate a shape', () => {
+  const ajv = new Ajv();
+  const validate = ajv.compile(ShapeSchema);
+
+  const shape = {
+    class: 'string',
+    offset: 'f64',
+    info: {
+      name: 'string',
+      value: 'i64',
+    },
+  };
+
+  expect(validate(shape)).toBeTrue();
 });
