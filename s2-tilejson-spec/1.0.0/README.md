@@ -12,11 +12,11 @@ The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "S
    1. [vector_layers](#33-vector_layers)
    1. [attributions](#34-attributions)
    1. [bounds](#35-bounds)
-   1. [center](#36-center)
+   1. [centerpoint](#36-centerpoint)
    1. [faces](#37-faces)
    1. [description](#38-description)
    1. [fillzoom](#39-fillzoom)
-   1. [facesbounds](#310-facesbounds)
+   1. [s2bounds](#310-s2bounds)
    1. [legend](#311-legend)
    1. [maxzoom](#312-maxzoom)
    1. [minzoom](#313-minzoom)
@@ -47,7 +47,7 @@ The following describes the structure of a S2-TileJSON object. Implementations M
 
 ### 3.1 `s2-tilejson`
 
-REQUIRED. String.
+REQUIRED. String. Matches the pattern: `\\d+\\.\\d+\\.\\d+\\w?[\\w\\d]*`.
 
 A semver.org style version number as a string. Describes the version of the S2-TileJSON spec that is implemented by this JSON object.
 
@@ -157,29 +157,23 @@ Contains a map of attributions to be displayed when the map is shown to a user. 
 
 ### 3.5 `bounds`
 
-OPTIONAL. Object. Default: `{}`.
+OPTIONAL. Object. Default: `[Infinity, Infinity, -Infinity, -Infinity]`.
 
-NOTICE: This is a breaking change from the [older tilejson specification](https://github.com/mapbox/tilejson-spec/blob/master/3.0.0/README.md#34-attribution). Instead of tracking lon-lat bounds, it tracks tile bounds to help reduce the number of requests.
-
-The maximum extent of available map tiles relative to the zoom. Each zoom has it's own bounding box defined by `[minX, minY, maxX, maxY]`.
+The maximum extent of available map tiles. Bounds MUST define an area covered by all zoom levels. The bounds are represented in WGS 84 latitude and longitude values, in the order left, bottom, right, top. Values may be integers or floating point numbers. The minimum/maximum values for longitude and latitude are -180/180 and -90/90 respectively. Bounds MUST NOT "wrap" around the ante-meridian. If bounds are not present, the default value MAY assume the set of tiles is globally distributed.
 
 ```JSON
-"bounds": { // bounds[zoom] = [...]
-  "0": [0, 0, 0, 0],
-  "1": [0, 1, 0, 0],
-  "2": [0, 3, 1, 3]
-},
+"bounds": [-180, -85.05112877980659, 180, 85.0511287798066]
 ```
 
-### 3.6 `center`
+### 3.6 `centerpoint`
 
-OPTIONAL. Array<Number>. Default: `null`.
+OPTIONAL. Object. Default: `{ lon: 0, lat: 0, zoom: 0 }`.
 
 The first value is the longitude, the second is latitude (both in WGS:84 values), the third value is the zoom level as an integer. Longitude and latitude MUST be within the specified bounds. The zoom level MUST be between minzoom and maxzoom. Implementations MAY use this center value to set the default location. If the value is null, implementations MAY use their own algorithm for determining a default location.
 
 ```JSON
 {
-  "center": {
+  "centerpoint": {
     "lon": -76.275329586789,
     "lat": 39.153492567373,
     "zoom": 8 
@@ -189,7 +183,7 @@ The first value is the longitude, the second is latitude (both in WGS:84 values)
 
 ### 3.7 `faces`
 
-OPTIONAL. Array<Number>. Default: `[]`.
+REQUIRED. Array<Number>. Default: `[0, 1, 2, 3, 4, 5]` (assume all faces have data if not provided).
 
 This is an S2 specific key. An array of faces that the data interacts with. Face vaules MUST be within `[0-6)`.
 
@@ -227,20 +221,36 @@ While TileJSON may specify rules for overzooming tiles, it is ultimately up to t
 }
 ```
 
-### 3.10 `facesbounds`
+### 3.10 `s2bounds`
 
 OPTIONAL. Object. Default: `null`.
 
-This is an S2 specific key. An object that maps each face to its bounds. The bounds are specified in the same format as the `bounds` property except that the starting key is a face number.
+This is an S2 specific key. An object that maps each face to its bounds. Instead of tracking lon-lat bounds, it tracks tile bounds to help reduce the number of requests.
 
 Much like how bounds are tracked, facebounds utilize the same format as bounds but map to
 
 ```JSON
 {
-  "facesbounds": { // facesbounds[face][zoom] = [...]
+  "s2bounds": { // s2bounds[face][zoom] = [...]
     "0": { "0": [0, 0, 0, 0], "1": [0, 1, 0, 0], "2": [0, 3, 1, 3] },
   }
 }
+```
+
+### 3.11 `wmbounds`
+
+OPTIONAL. Object. Default: `{}`.
+
+This is a WM specific key. Instead of tracking lon-lat bounds, it tracks tile bounds to help reduce the number of requests.
+
+The maximum extent of available map tiles relative to the zoom. Each zoom has it's own bounding box defined by `[minX, minY, maxX, maxY]`.
+
+```JSON
+"wmbounds": { // bounds[zoom] = [...]
+  "0": [0, 0, 0, 0],
+  "1": [0, 1, 0, 0],
+  "2": [0, 3, 1, 3]
+},
 ```
 
 ### 3.11 `legend`
@@ -295,7 +305,7 @@ A name describing the set of tiles. The name can contain any legal character. Im
 
 OPTIONAL. String. Default: `"fzxy"`.
 
-Mercator: Either `"xyz"` or `"txyz"`. The global-mercator (aka Spherical Mercator) profile is assumed. if a `t` is attached to the beginning of the xyz spec, the tiles are time based.
+Mercator: Either `"xyz"`, `"txyz"`, or `"tms"`. The global-mercator (aka Spherical Mercator) profile is assumed. if a `t` is attached to the beginning of the xyz spec, the tiles are time based.
 
 S2: May be `"fzxy"` or `"tfzxy"`. This stands for `face`-`zoom`-`x`-`y`. If a `t` is attached to the beginning of the xyz spec, the tiles are time based.
 
@@ -414,7 +424,7 @@ Example Shape:
 
 ### 3.17 `version`
 
-OPTIONAL. String. Default: `"1.0.0"`.
+OPTIONAL. String. Default: `"1.0.0"`. Matches the pattern: `\\d+\\.\\d+\\.\\d+\\w?[\\w\\d]*`.
 
 A [semver.org](https://semver.org) style version number of the tiles. When changes across tiles are introduced the minor version MUST change. This may lead to cut off labels. Therefore, implementors can decide to clean their cache when the minor version changes. Changes to the patch level MUST only have changes to tiles that are contained within one tile. When tiles change significantly, such as updating a vector tile layer name, the major version MUST be increased. Implementations MUST NOT use tiles with different major versions.
 

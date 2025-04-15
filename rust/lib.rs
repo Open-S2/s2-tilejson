@@ -173,7 +173,7 @@ pub type Attributions = BTreeMap<String, String>;
 /// Track the S2 tile bounds of each face and zoom
 #[derive(Serialize, Deserialize, Debug, Default, Clone, PartialEq)]
 pub struct FaceBounds {
-    // facesbounds[face][zoom] = [...]
+    // s2bounds[face][zoom] = [...]
     /// Tile bounds for face 0 at each zoom
     #[serde(rename = "0")]
     pub face0: BTreeMap<u8, TileBounds>,
@@ -399,9 +399,9 @@ pub struct Center {
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 #[serde(default)]
 pub struct Metadata {
-    /// The version of the s2-tilejson spec
+    /// The version of the s2-tilejson spec. Matches the pattern: `^\d+\.\d+\.\d+\w?[\w\d]*$`.
     pub s2tilejson: String,
-    /// The version of the data
+    /// The version of the data. Matches the pattern: `^\d+\.\d+\.\d+\w?[\w\d]*$`.
     pub version: String,
     /// The name of the data
     pub name: String,
@@ -418,24 +418,54 @@ pub struct Metadata {
     pub encoding: Encoding,
     /// List of faces that have data
     pub faces: Vec<Face>,
+    /// Bounding box array [west, south, east, north].
+    pub bounds: LonLatBounds,
     /// WM Tile fetching bounds. Helpful to not make unecessary requests for tiles we know don't exist
-    pub bounds: WMBounds,
+    pub wmbounds: WMBounds,
     /// S2 Tile fetching bounds. Helpful to not make unecessary requests for tiles we know don't exist
-    pub facesbounds: FaceBounds,
+    pub s2bounds: FaceBounds,
     /// minzoom at which to request tiles. [default=0]
     pub minzoom: u8,
     /// maxzoom at which to request tiles. [default=27]
     pub maxzoom: u8,
     /// The center of the data
-    pub center: Center,
+    pub centerpoint: Center,
     /// { ['human readable string']: 'href' }
     pub attributions: Attributions,
     /// Track layer metadata
     pub layers: LayersMetaData,
     /// Track tile stats for each face and total overall
     pub tilestats: TileStatsMetadata,
-    /// Old spec, track basic layer metadata
+    /// Old spec but required for functional compatibility, track basic layer metadata
     pub vector_layers: Vec<VectorLayer>,
+
+    // Old spec
+    /// Version of the TileJSON spec used. Matches the pattern: `^\d+\.\d+\.\d+\w?[\w\d]*$`.
+    pub tilejson: Option<String>,
+    /// Array of tile URL templates.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tiles: Option<Vec<String>>,
+    /// Attribution string.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub attribution: Option<String>,
+    /// Fill zoom level. Must be between 0 and 30.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub fillzoom: Option<u8>,
+    /// Center coordinate array [longitude, latitude, zoom].
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub center: Option<[f64; 3]>,
+    /// Array of data source URLs.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub data: Option<Vec<String>>,
+    /// Array of UTFGrid URL templates.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub grids: Option<Vec<String>>,
+    /// Legend of the tileset.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub legend: Option<String>,
+    /// Template for interactivity.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub template: Option<String>,
 }
 impl Default for Metadata {
     fn default() -> Self {
@@ -448,16 +478,26 @@ impl Default for Metadata {
             r#type: SourceType::default(),
             extension: "pbf".into(),
             encoding: Encoding::default(),
-            faces: Vec::new(),
-            bounds: WMBounds::default(),
-            facesbounds: FaceBounds::default(),
+            faces: Vec::default(),
+            bounds: BBox::new(-180.0, -90.0, 180.0, 90.0),
+            wmbounds: WMBounds::default(),
+            s2bounds: FaceBounds::default(),
             minzoom: 0,
             maxzoom: 27,
-            center: Center::default(),
+            centerpoint: Center::default(),
             attributions: BTreeMap::new(),
             layers: LayersMetaData::default(),
             tilestats: TileStatsMetadata::default(),
             vector_layers: Vec::new(),
+            attribution: None,
+            fillzoom: None,
+            center: None,
+            data: None,
+            grids: None,
+            legend: None,
+            template: None,
+            tilejson: None,
+            tiles: None,
         }
     }
 }
@@ -478,52 +518,69 @@ impl Default for Metadata {
 #[derive(Serialize, Deserialize, Debug, Clone, Default, PartialEq)]
 #[serde(default)]
 pub struct MapboxTileJSONMetadata {
-    /// Version of the TileJSON spec used.
-    /// Matches the pattern: `\d+\.\d+\.\d+\w?[\w\d]*`.
+    /// Version of the TileJSON spec used. Matches the pattern: `\d+\.\d+\.\d+\w?[\w\d]*`.
     pub tilejson: String,
     /// Array of tile URL templates.
     pub tiles: Vec<String>,
     /// Array of vector layer metadata.
     pub vector_layers: Vec<VectorLayer>,
     /// Attribution string.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub attribution: Option<String>,
     /// Bounding box array [west, south, east, north].
-    pub bounds: Option<BBox>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub bounds: Option<LonLatBounds>,
     /// Center coordinate array [longitude, latitude, zoom].
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub center: Option<[f64; 3]>,
     /// Array of data source URLs.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub data: Option<Vec<String>>,
     /// Description string.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
     /// Fill zoom level. Must be between 0 and 30.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub fillzoom: Option<u8>,
     /// Array of UTFGrid URL templates.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub grids: Option<Vec<String>>,
     /// Legend of the tileset.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub legend: Option<String>,
     /// Maximum zoom level. Must be between 0 and 30.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub maxzoom: Option<u8>,
     /// Minimum zoom level. Must be between 0 and 30.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub minzoom: Option<u8>,
     /// Name of the tileset.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub name: Option<String>,
     /// Tile scheme, e.g., `xyz` or `tms`.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub scheme: Option<Scheme>,
     /// Template for interactivity.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub template: Option<String>,
     /// Version of the tileset. Matches the pattern: `\d+\.\d+\.\d+\w?[\w\d]*`.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub version: Option<String>,
     // NEW SPEC variables hiding here incase UnknownMetadata parses to Mapbox instead
     /// Added type because it may be included
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub r#type: Option<SourceType>,
     /// Extension of the tileset.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub extension: Option<String>,
     /// Encoding of the tileset.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub encoding: Option<Encoding>,
 }
 impl MapboxTileJSONMetadata {
     /// Converts a MapboxTileJSONMetadata to a Metadata
     pub fn to_metadata(&self) -> Metadata {
+        let [lon, lat, zoom] = self.center.unwrap_or([0.0, 0.0, 0.0]);
         Metadata {
             s2tilejson: "1.0.0".into(),
             version: self.version.clone().unwrap_or("1.0.0".into()),
@@ -533,21 +590,23 @@ impl MapboxTileJSONMetadata {
             r#type: self.r#type.clone().unwrap_or_default(),
             extension: self.extension.clone().unwrap_or("pbf".into()),
             faces: Vec::from([Face::Face0]),
-            bounds: WMBounds::default(),
-            facesbounds: FaceBounds::default(),
+            bounds: self.bounds.unwrap_or_default(),
             minzoom: self.minzoom.unwrap_or(0),
             maxzoom: self.maxzoom.unwrap_or(27),
-            center: Center {
-                lon: self.center.unwrap_or([0.0, 0.0, 0.0])[0],
-                lat: self.center.unwrap_or([0.0, 0.0, 0.0])[1],
-                zoom: self.center.unwrap_or([0.0, 0.0, 0.0])[2] as u8,
-            },
+            centerpoint: Center { lon, lat, zoom: zoom as u8 },
+            center: Some([lon, lat, zoom]),
             attributions: extract_link_info(self.attribution.as_ref().unwrap_or(&"".into()))
                 .unwrap_or_default(),
-            layers: LayersMetaData::default(),
-            tilestats: TileStatsMetadata::default(),
             vector_layers: self.vector_layers.clone(),
             encoding: self.encoding.clone().unwrap_or(Encoding::None),
+            attribution: self.attribution.clone(),
+            tiles: Some(self.tiles.clone()),
+            data: self.data.clone(),
+            grids: self.grids.clone(),
+            legend: self.legend.clone(),
+            template: self.template.clone(),
+            fillzoom: self.fillzoom,
+            ..Default::default()
         }
     }
 }
@@ -597,6 +656,8 @@ impl MetadataBuilder {
     pub fn commit(&mut self) -> Metadata {
         // set the center
         self.update_center();
+        // set the bounds
+        self.metadata.bounds = self.lon_lat_bounds;
         // set the faces
         for face in &self.faces {
             self.metadata.faces.push(*face);
@@ -687,16 +748,16 @@ impl MetadataBuilder {
     fn update_center(&mut self) {
         let Metadata { minzoom, maxzoom, .. } = self.metadata;
         let BBox { left, bottom, right, top } = self.lon_lat_bounds;
-        self.metadata.center.lon = (left + right) / 2.0;
-        self.metadata.center.lat = (bottom + top) / 2.0;
-        self.metadata.center.zoom = (minzoom + maxzoom) >> 1;
+        self.metadata.centerpoint.lon = (left + right) / 2.0;
+        self.metadata.centerpoint.lat = (bottom + top) / 2.0;
+        self.metadata.centerpoint.zoom = (minzoom + maxzoom) >> 1;
     }
 
     /// Add the bounds of the tile for WM data
     fn add_bounds_wm(&mut self, zoom: u8, x: u32, y: u32) {
         let x = x as u64;
         let y = y as u64;
-        let bbox = self.metadata.bounds.entry(zoom).or_insert(BBox {
+        let bbox = self.metadata.wmbounds.entry(zoom).or_insert(BBox {
             left: u64::MAX,
             bottom: u64::MAX,
             right: 0,
@@ -713,7 +774,7 @@ impl MetadataBuilder {
     fn add_bounds_s2(&mut self, face: Face, zoom: u8, x: u32, y: u32) {
         let x = x as u64;
         let y = y as u64;
-        let bbox = self.metadata.facesbounds.get_mut(face).entry(zoom).or_insert(BBox {
+        let bbox = self.metadata.s2bounds.get_mut(face).entry(zoom).or_insert(BBox {
             left: u64::MAX,
             bottom: u64::MAX,
             right: 0,
@@ -832,9 +893,13 @@ mod tests {
                     "OpenStreetMap".into(),
                     "https://www.openstreetmap.org/copyright/".into()
                 ),]),
-                bounds: BTreeMap::from([(0, TileBounds { left: 0, bottom: 0, right: 0, top: 0 }),]),
+                wmbounds: BTreeMap::from([(
+                    0,
+                    TileBounds { left: 0, bottom: 0, right: 0, top: 0 }
+                ),]),
                 faces: Vec::from(&[Face::Face0, Face::Face1]),
-                facesbounds: FaceBounds {
+                bounds: BBox { left: -120.0, bottom: -20.0, right: 44.0, top: 72.0 },
+                s2bounds: FaceBounds {
                     face0: BTreeMap::new(),
                     face1: BTreeMap::from([(
                         5,
@@ -847,7 +912,8 @@ mod tests {
                 },
                 minzoom: 0,
                 maxzoom: 13,
-                center: Center { lon: -38.0, lat: 26.0, zoom: 6 },
+                // lon: -38.0, lat: 26.0, zoom: 6
+                centerpoint: Center { lon: -38.0, lat: 26.0, zoom: 6 },
                 tilestats: TileStatsMetadata {
                     total: 2,
                     total_0: 0,
@@ -886,12 +952,13 @@ mod tests {
                     maxzoom: Some(13),
                     fields: BTreeMap::new()
                 }]),
+                ..Default::default()
             }
         );
 
         let meta_str = serde_json::to_string(&resulting_metadata).unwrap();
 
-        assert_eq!(meta_str, "{\"s2tilejson\":\"1.0.0\",\"version\":\"1.0.0\",\"name\":\"OSM\",\"scheme\":\"fzxy\",\"description\":\"A free editable map of the whole world.\",\"type\":\"vector\",\"extension\":\"pbf\",\"encoding\":\"none\",\"faces\":[0,1],\"bounds\":{\"0\":[0,0,0,0]},\"facesbounds\":{\"0\":{},\"1\":{\"5\":[22,37,22,37]},\"2\":{},\"3\":{},\"4\":{},\"5\":{}},\"minzoom\":0,\"maxzoom\":13,\"center\":{\"lon\":-38.0,\"lat\":26.0,\"zoom\":6},\"attributions\":{\"OpenStreetMap\":\"https://www.openstreetmap.org/copyright/\"},\"layers\":{\"water_lines\":{\"description\":\"water_lines\",\"minzoom\":0,\"maxzoom\":13,\"draw_types\":[2],\"shape\":{\"class\":\"string\",\"info\":{\"name\":\"string\",\"value\":\"i64\"},\"offset\":\"f64\"}}},\"tilestats\":{\"total\":2,\"0\":0,\"1\":1,\"2\":0,\"3\":0,\"4\":0,\"5\":0},\"vector_layers\":[{\"id\":\"water_lines\",\"description\":\"water_lines\",\"minzoom\":0,\"maxzoom\":13,\"fields\":{}}]}");
+        assert_eq!(meta_str, "{\"s2tilejson\":\"1.0.0\",\"version\":\"1.0.0\",\"name\":\"OSM\",\"scheme\":\"fzxy\",\"description\":\"A free editable map of the whole world.\",\"type\":\"vector\",\"extension\":\"pbf\",\"encoding\":\"none\",\"faces\":[0,1],\"bounds\":[-120.0,-20.0,44.0,72.0],\"wmbounds\":{\"0\":[0,0,0,0]},\"s2bounds\":{\"0\":{},\"1\":{\"5\":[22,37,22,37]},\"2\":{},\"3\":{},\"4\":{},\"5\":{}},\"minzoom\":0,\"maxzoom\":13,\"centerpoint\":{\"lon\":-38.0,\"lat\":26.0,\"zoom\":6},\"attributions\":{\"OpenStreetMap\":\"https://www.openstreetmap.org/copyright/\"},\"layers\":{\"water_lines\":{\"description\":\"water_lines\",\"minzoom\":0,\"maxzoom\":13,\"draw_types\":[2],\"shape\":{\"class\":\"string\",\"info\":{\"name\":\"string\",\"value\":\"i64\"},\"offset\":\"f64\"}}},\"tilestats\":{\"total\":2,\"0\":0,\"1\":1,\"2\":0,\"3\":0,\"4\":0,\"5\":0},\"vector_layers\":[{\"id\":\"water_lines\",\"description\":\"water_lines\",\"minzoom\":0,\"maxzoom\":13,\"fields\":{}}],\"tilejson\":null}");
 
         let meta_reparsed: Metadata =
             serde_json::from_str(&meta_str).unwrap_or_else(|e| panic!("ERROR: {}", e));
@@ -1314,22 +1381,30 @@ mod tests {
                 version: "1.0.0".into(),
                 scheme: Scheme::Xyz,
                 r#type: "vector".into(),
-                encoding: "none".into(),
+                encoding: Encoding::None, // Changed from "none".into() to None
                 extension: "pbf".into(),
                 attributions: BTreeMap::from([(
                     "OSM contributors".into(),
                     "https://openstreetmap.org".into()
                 )]),
+                bounds: BBox::new(-180., -85., 180., 85.),
                 vector_layers: meta_mapbox.vector_layers.clone(),
                 maxzoom: 18,
                 minzoom: 0,
-                center: Center { lat: 0.0, lon: 0.0, zoom: 0 },
-                bounds: WMBounds::default(),
+                centerpoint: Center { lat: 0.0, lon: 0.0, zoom: 0 },
+                wmbounds: WMBounds::default(),
                 faces: vec![Face::Face0],
-                facesbounds: FaceBounds::default(),
+                s2bounds: FaceBounds::default(),
                 tilestats: TileStatsMetadata::default(),
                 layers: LayersMetaData::default(),
                 s2tilejson: "1.0.0".into(),
+                attribution: Some(
+                    "<a href='https://openstreetmap.org'>OSM contributors</a>".into()
+                ),
+                tiles: Some(meta_mapbox.tiles.clone()),
+                fillzoom: meta_mapbox.fillzoom,
+                center: Some([0.0, 0.0, 0.0]),
+                ..Default::default()
             },
         );
 
@@ -1344,22 +1419,28 @@ mod tests {
                 version: "1.0.0".into(),
                 scheme: Scheme::Xyz,
                 r#type: "vector".into(),
-                encoding: "none".into(),
+                encoding: Encoding::None, // Changed from "none".into() to None
                 extension: "pbf".into(),
-                attributions: BTreeMap::from([(
-                    "OSM contributors".into(),
-                    "https://openstreetmap.org".into()
-                )]),
+                attributions: BTreeMap::default(),
+                bounds: BBox::new(-180., -85., 180., 85.),
                 vector_layers: meta_mapbox.vector_layers.clone(),
                 maxzoom: 18,
                 minzoom: 0,
-                center: Center { lat: 0.0, lon: 0.0, zoom: 0 },
-                bounds: WMBounds::default(),
-                faces: vec![Face::Face0],
-                facesbounds: FaceBounds::default(),
+                centerpoint: Center { lat: 0.0, lon: 0.0, zoom: 0 },
+                wmbounds: WMBounds::default(),
+                faces: vec![],
+                s2bounds: FaceBounds::default(),
                 tilestats: TileStatsMetadata::default(),
                 layers: LayersMetaData::default(),
                 s2tilejson: "1.0.0".into(),
+                attribution: Some(
+                    "<a href='https://openstreetmap.org'>OSM contributors</a>".into()
+                ),
+                tiles: Some(meta_mapbox.tiles.clone()),
+                fillzoom: meta_mapbox.fillzoom,
+                center: None,
+                tilejson: Some("3.0.0".into()),
+                ..Default::default()
             },
         );
     }
@@ -1400,9 +1481,10 @@ mod tests {
                 r#type: SourceType::Raster,
                 extension: "webp".into(),
                 encoding: Encoding::Gzip,
-                faces: vec![Face::Face0],
-                bounds: BTreeMap::default(),
-                facesbounds: FaceBounds {
+                faces: vec![],
+                bounds: BBox::new(-180., -85., 180., 85.),
+                wmbounds: BTreeMap::default(),
+                s2bounds: FaceBounds {
                     face0: BTreeMap::default(),
                     face1: BTreeMap::default(),
                     face2: BTreeMap::default(),
@@ -1412,7 +1494,7 @@ mod tests {
                 },
                 minzoom: 0,
                 maxzoom: 3,
-                center: Center { lon: 0.0, lat: 0.0, zoom: 0 },
+                centerpoint: Center { lon: 0.0, lat: 0.0, zoom: 0 },
                 attributions: BTreeMap::default(),
                 layers: BTreeMap::default(),
                 tilestats: TileStatsMetadata {
@@ -1424,7 +1506,8 @@ mod tests {
                     total_4: 0,
                     total_5: 0
                 },
-                vector_layers: vec![]
+                vector_layers: vec![],
+                ..Default::default()
             }
         );
     }

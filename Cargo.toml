@@ -1,6 +1,6 @@
 [package]
 name = "s2-tilejson"
-version = "1.7.0"
+version = "1.8.0"
 edition = "2024"
 authors = ["Craig O'Connor <oconnorct1@gmail.com>"]
 description = "Backwards compatible JSON format for describing s2 map tilesets."

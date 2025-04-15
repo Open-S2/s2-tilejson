@@ -33,7 +33,7 @@
 
 ## About
 
-TileJSON is a mostly [backwards-compatible](https://github.com/mapbox/tilejson-spec) open standard for representing map tile metadata.
+TileJSON is a [backwards-compatible](https://github.com/mapbox/tilejson-spec) open standard for representing map tile metadata.
 
 ## Install
 
@@ -46,6 +46,9 @@ pnpm add s2-tilejson
 yarn add s2-tilejson
 # Bun
 bun add s2-tilejson
+
+# Cargo
+cargo add s2-tilejson
 ```
 
 ## Usage

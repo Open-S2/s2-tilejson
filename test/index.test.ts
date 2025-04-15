@@ -1,4 +1,5 @@
-import { DrawType, MetadataBuilder, toMetadata } from '../src';
+import Ajv from 'ajv';
+import { DrawType, MetadataBuilder, S2TileJSONSchema, TileJSONSchema, toMetadata } from '../src';
 import { expect, test } from 'bun:test';
 
 import type { LayerMetaData, MapboxTileJSONMetadata, Metadata, Shape } from '../src';
@@ -46,10 +47,11 @@ test('basic metadata', () => {
     attributions: {
       OpenStreetMap: 'https://www.openstreetmap.org/copyright/',
     },
-    bounds: {
+    bounds: [-120, -20, 44, 72],
+    wmbounds: {
       '0': [0, 0, 0, 0],
     },
-    center: {
+    centerpoint: {
       lat: 26,
       lon: -38,
       zoom: 6,
@@ -58,7 +60,7 @@ test('basic metadata', () => {
     encoding: 'none',
     extension: 'pbf',
     faces: [0, 1],
-    facesbounds: {
+    s2bounds: {
       '0': {},
       '1': {
         '5': [22, 37, 22, 37],
@@ -159,8 +161,8 @@ test('Mapbox Metadata', () => {
   const s2Spec = toMetadata(mapboxSpec);
   expect(s2Spec).toEqual({
     attributions: { 'OSM contributors': 'https://openstreetmap.org' },
-    bounds: {},
-    center: {
+    wmbounds: {},
+    centerpoint: {
       lat: 0,
       lon: 0,
       zoom: 0,
@@ -169,7 +171,7 @@ test('Mapbox Metadata', () => {
     encoding: 'none',
     extension: 'tile',
     faces: [0],
-    facesbounds: {
+    s2bounds: {
       '0': {},
       '1': {},
       '2': {},
@@ -209,6 +211,18 @@ test('Mapbox Metadata', () => {
       },
     ],
     version: '1.0.0',
+    // old spec
+    bounds: [-180, -85, 180, 85],
+    attribution: "<a href='https://openstreetmap.org'>OSM contributors</a>",
+    fillzoom: 6,
+    tilejson: '3.0.0',
+    tiles: [
+      'https://a.tile.custom-osm-tiles.org/{z}/{x}/{y}.mvt',
+      'https://b.tile.custom-osm-tiles.org/{z}/{x}/{y}.mvt',
+      'https://c.tile.custom-osm-tiles.org/{z}/{x}/{y}.mvt',
+    ],
+    // random values
+    something_custom: 'this is my unique field',
   });
 });
 
@@ -227,8 +241,8 @@ test('Minimal metadata', () => {
   const s2Spec = toMetadata(mini as unknown as MapboxTileJSONMetadata);
   expect(s2Spec).toEqual({
     attributions: {},
-    bounds: {},
-    center: {
+    wmbounds: {},
+    centerpoint: {
       lat: 0,
       lon: 0,
       zoom: 0,
@@ -237,7 +251,7 @@ test('Minimal metadata', () => {
     encoding: 'none',
     extension: 'pbf',
     faces: [0],
-    facesbounds: {
+    s2bounds: {
       '0': {},
       '1': {},
       '2': {},
@@ -254,5 +268,37 @@ test('Minimal metadata', () => {
     type: 'vector',
     vector_layers: [],
     version: '1.0.0',
+    // old spec stuff
+    bounds: [-180, -85, 180, 85],
+    // random dead code
+    format: 'zxy',
   });
+});
+
+// test('validate the s2tilejson example', async () => {
+//   const ajv = new Ajv();
+//   const validate = ajv.compile(S2TileJSONSchema);
+
+//   const exampleJSON = await Bun.file(
+//     `${__dirname}/../s2-tilejson-spec/1.0.0/examples/osm-s2.json`,
+//   ).json();
+
+//   expect(validate(exampleJSON)).toBeTrue();
+// });
+
+test('validate the tilejson example', async () => {
+  const ajv = new Ajv();
+  const validate = ajv.compile(TileJSONSchema);
+
+  const exampleJSON = await Bun.file(
+    `${__dirname}/../s2-tilejson-spec/1.0.0/examples/backwards.osm.json`,
+  ).json();
+
+  expect(validate(exampleJSON)).toBeTrue();
+
+  // s2
+  const exampleJSON_S2 = toMetadata(exampleJSON);
+
+  const s2Validate = ajv.compile(S2TileJSONSchema);
+  expect(s2Validate(exampleJSON_S2)).toBeTrue();
 });

@@ -1,0 +1,370 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "S2 TileJSON Metadata",
+    "description": "Metadata describing a collection of S2 or WM tiles and how to access them.",
+    "type": "object",
+    "properties": {
+        "s2tilejson": {
+            "description": "The version of the s2-tilejson spec. Matches the pattern: \\d+\\.\\d+\\.\\d+\\w?[\\w\\d]*.",
+            "type": "string",
+            "pattern": "^\\d+\\.\\d+\\.\\d+\\w?[\\w\\d]*$"
+        },
+        "type": {
+            "description": "The type of the tileset.",
+            "$ref": "#/definitions/SourceType"
+        },
+        "minzoom": {
+            "description": "Minimum zoom level at which to request tiles. [default=0]",
+            "type": "integer",
+            "default": 0
+        },
+        "maxzoom": {
+            "description": "Maximum zoom level at which to request tiles. [default=27]",
+            "type": "integer",
+            "default": 27
+        },
+        "extension": {
+            "description": "The extension when requesting a tile.",
+            "$ref": "#/definitions/Extensions"
+        },
+        "faces": {
+            "description": "List of faces that have tileset data.",
+            "type": "array",
+            "items": {
+                "$ref": "#/definitions/Face"
+            }
+        },
+        "wmbounds": {
+            "description": "WM Tile fetching bounds per zoom. Helpful to avoid unnecessary requests.",
+            "$ref": "#/definitions/WMBounds"
+        },
+        "s2bounds": {
+            "description": "S2 Tile fetching bounds per face and zoom. Helpful to avoid unnecessary requests.",
+            "$ref": "#/definitions/S2Bounds"
+        },
+        "layers": {
+            "description": "Track layer metadata.",
+            "$ref": "#/definitions/LayersMetaData"
+        },
+        "attributions": {
+            "description": "Attribution data: { ['human readable string']: 'href' }.",
+            "$ref": "#/definitions/Attributions"
+        },
+        "version": {
+            "description": "The version of the tileset. Matches the pattern: \\d+\\.\\d+\\.\\d+\\w?[\\w\\d]*.",
+            "type": "string",
+            "pattern": "^\\d+\\.\\d+\\.\\d+\\w?[\\w\\d]*$"
+        },
+        "name": {
+            "description": "The name of the tileset.",
+            "type": "string"
+        },
+        "scheme": {
+            "description": "The scheme of the tileset.",
+            "$ref": "#/definitions/Scheme"
+        },
+        "description": {
+            "description": "The description of the tileset.",
+            "type": "string"
+        },
+        "encoding": {
+            "description": "The encoding of the tileset.",
+            "$ref": "#/definitions/Encoding"
+        },
+        "centerpoint": {
+            "description": "The center of the tileset.",
+            "$ref": "#/definitions/Center"
+        },
+        "tilestats": {
+            "description": "Track tile stats for each face and total overall.",
+            "$ref": "#/definitions/TileStatsMetadata"
+        },
+        "vector_layers": {
+            "description": "Track basic layer metadata (old spec).",
+            "type": "array",
+            "items": {
+                "$ref": "#/definitions/VectorLayer"
+            }
+        },
+        "tilejson": {
+            "description": "Version of the TileJSON spec used (old spec). Matches the pattern: \\d+\\.\\d+\\.\\d+\\w?[\\w\\d]*.",
+            "type": "string",
+            "pattern": "^\\d+\\.\\d+\\.\\d+\\w?[\\w\\d]*$"
+        },
+        "tiles": {
+            "description": "Array of tile URL templates (old spec).",
+            "type": "array",
+            "items": {
+                "type": "string"
+            }
+        },
+        "attribution": {
+            "description": "Attribution string (old spec).",
+            "type": "string"
+        },
+        "bounds": {
+            "description": "Bounding box array [west, south, east, north] (old spec).",
+            "$ref": "#/definitions/BBox"
+        },
+        "center": {
+            "description": "Center coordinate array [longitude, latitude, zoom] (old spec).",
+            "type": "array",
+            "minItems": 3,
+            "maxItems": 3,
+            "items": [
+                { "type": "number", "description": "longitude" },
+                { "type": "number", "description": "latitude" },
+                { "type": "integer", "description": "zoom" }
+            ]
+        },
+        "data": {
+            "description": "Array of data source URLs (old spec).",
+            "type": "array",
+            "items": {
+                "type": "string"
+            }
+        },
+        "fillzoom": {
+            "description": "Fill zoom level (old spec). Must be between 0 and 30.",
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 30
+        },
+        "grids": {
+            "description": "Array of UTFGrid URL templates (old spec).",
+            "type": "array",
+            "items": {
+                "type": "string"
+            }
+        },
+        "legend": {
+            "description": "Legend of the tileset (old spec).",
+            "type": "string"
+        },
+        "template": {
+            "description": "Template for interactivity (old spec).",
+            "type": "string"
+        }
+    },
+    "required": [
+        "s2tilejson",
+        "type",
+        "minzoom",
+        "maxzoom",
+        "extension",
+        "layers",
+        "vector_layers"
+    ],
+    "additionalProperties": true,
+    "definitions": {
+        "Face": {
+            "description": "S2 Face",
+            "type": "integer",
+            "enum": [0, 1, 2, 3, 4, 5]
+        },
+        "BBox": {
+            "description": "Bounding box: [left, bottom, right, top]",
+            "type": "array",
+            "minItems": 4,
+            "maxItems": 4,
+            "items": {
+                "type": "number"
+            }
+        },
+        "DrawType": {
+            "description": "List of possible draw types: 1: points, 2: lines, 3: polys, 4: points3D, 5: lines3D, 6: polys3D, 7: raster, 8: grid data",
+            "type": "integer",
+            "enum": [1, 2, 3, 4, 5, 6, 7, 8]
+        },
+        "PrimitiveShapes": {
+            "description": "Primitive types that can be found in a shape",
+            "type": "string",
+            "enum": ["string", "f32", "f64", "u64", "i64", "bool", "null"]
+        },
+        "ShapePrimitive": {
+            "description": "Shape Object where values are only primitives",
+            "type": "object",
+            "additionalProperties": {
+                "$ref": "#/definitions/PrimitiveShapes"
+            }
+        },
+        "ShapePrimitiveType": {
+            "description": "Arrays may contain either a primitive or an object whose values are primitives",
+            "oneOf": [
+                { "$ref": "#/definitions/PrimitiveShapes" },
+                { "$ref": "#/definitions/ShapePrimitive" }
+            ]
+        },
+        "ShapeType": {
+            "description": "Shape types: a primitive, an array containing a single type, or a nested shape",
+            "oneOf": [
+                { "$ref": "#/definitions/PrimitiveShapes" },
+                {
+                    "type": "array",
+                    "minItems": 1,
+                    "maxItems": 1,
+                    "items": { "$ref": "#/definitions/ShapePrimitiveType" }
+                },
+                { "$ref": "#/definitions/Shape" }
+            ]
+        },
+        "Shape": {
+            "description": "The Shape Object. Describes feature properties. Assume an empty shape if raster or grid data.",
+            "type": "object",
+            "additionalProperties": {
+                "$ref": "#/definitions/ShapeType"
+            }
+        },
+        "LayerMetaData": {
+            "description": "Metadata associated with each layer. Defined as blueprints pre-construction of vector data.",
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "minzoom": {
+                    "type": "integer"
+                },
+                "maxzoom": {
+                    "type": "integer"
+                },
+                "drawTypes": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/DrawType"
+                    }
+                },
+                "shape": {
+                    "$ref": "#/definitions/Shape"
+                },
+                "mShape": {
+                    "$ref": "#/definitions/Shape"
+                }
+            },
+            "required": ["minzoom", "maxzoom", "drawTypes", "shape"],
+            "additionalProperties": false
+        },
+        "LayersMetaData": {
+            "description": "Metadata for all layers, keyed by layer name.",
+            "type": "object",
+            "additionalProperties": {
+                "$ref": "#/definitions/LayerMetaData"
+            }
+        },
+        "TileStatsMetadata": {
+            "description": "Tracker for tile distribution across faces.",
+            "type": "object",
+            "properties": {
+                "total": { "type": "number" },
+                "0": { "type": "number" },
+                "1": { "type": "number" },
+                "2": { "type": "number" },
+                "3": { "type": "number" },
+                "4": { "type": "number" },
+                "5": { "type": "number" }
+            },
+            "required": ["total", "0", "1", "2", "3", "4", "5"],
+            "additionalProperties": false
+        },
+        "Attributions": {
+            "description": "Attribution data stored as key-value pairs (name: link).",
+            "type": "object",
+            "additionalProperties": {
+                "type": "string"
+            }
+        },
+        "ZoomBBoxMap": {
+            "description": "Mapping from zoom level (as string key) to Bounding Box.",
+            "type": "object",
+            "patternProperties": {
+                "^[0-9]+$": { "$ref": "#/definitions/BBox" }
+            },
+            "additionalProperties": false
+        },
+        "S2Bounds": {
+            "description": "Track the S2 tile bounds of each face and zoom.",
+            "type": "object",
+            "properties": {
+                "0": { "$ref": "#/definitions/ZoomBBoxMap" },
+                "1": { "$ref": "#/definitions/ZoomBBoxMap" },
+                "2": { "$ref": "#/definitions/ZoomBBoxMap" },
+                "3": { "$ref": "#/definitions/ZoomBBoxMap" },
+                "4": { "$ref": "#/definitions/ZoomBBoxMap" },
+                "5": { "$ref": "#/definitions/ZoomBBoxMap" }
+            },
+            "required": ["0", "1", "2", "3", "4", "5"],
+            "additionalProperties": false
+        },
+        "WMBounds": {
+            "description": "Track the WM tile bounds of each zoom.",
+            "$ref": "#/definitions/ZoomBBoxMap"
+        },
+        "ImageExtensions": {
+            "description": "Types of image extensions.",
+            "type": "string",
+            "enum": ["raw", "png", "jpg", "jpeg", "jpe", "webp", "avif", "gif", "svg", "bmp", "tiff", "ico", "cur"]
+        },
+        "Extensions": {
+            "description": "All supported extensions.",
+            "type": "string"
+        },
+        "SourceType": {
+            "description": "Check the source type of the layer. 'overlay' indicates an old engine.",
+            "type": "string",
+            "enum": ["vector", "json", "raster", "raster-dem", "grid", "markers", "overlay"]
+        },
+        "Encoding": {
+            "description": "Store the encoding of the data.",
+            "type": "string",
+            "enum": ["gz", "br", "none", "zstd"]
+        },
+        "VectorLayer": {
+            "description": "Old spec structure for basic vector layer metadata.",
+            "type": "object",
+            "properties": {
+                "id": {
+                    "description": "Unique identifier of the layer.",
+                    "type": "string"
+                },
+                "description": {
+                    "description": "Description of the layer.",
+                    "type": "string"
+                },
+                "minzoom": {
+                    "description": "Minimum zoom level for the layer.",
+                    "type": "integer"
+                },
+                "maxzoom": {
+                    "description": "Maximum zoom level for the layer.",
+                    "type": "integer"
+                },
+                "fields": {
+                    "description": "Field metadata for the layer.",
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string",
+                        "description": "Description of the field type (e.g., 'String', 'Number')."
+                    }
+                }
+            },
+            "required": ["id", "fields"],
+            "additionalProperties": true
+        },
+        "Scheme": {
+            "description": "Tile addressing scheme. Default S2: fzxy, Default WM: xyz. 't' prefix for time-sensitive. TMS not supported by s2maps-gpu.",
+            "type": "string",
+            "enum": ["fzxy", "tfzxy", "xyz", "txyz", "tms"]
+        },
+        "Center": {
+            "description": "Store where the center of the data lives.",
+            "type": "object",
+            "properties": {
+                "lon": { "description": "center longitude", "type": "number" },
+                "lat": { "description": "center latitude", "type": "number" },
+                "zoom": { "description": "zoom level", "type": "integer" }
+            },
+            "required": ["lon", "lat", "zoom"],
+            "additionalProperties": false
+        }
+    }
+}

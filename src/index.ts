@@ -1,3 +1,8 @@
+import S2TileJSONSchema from './s2tilejson.schema.json';
+import ShapeSchema from './shape.schema.json';
+import TileJSONSchema from './tilejson.schema.json';
+export { ShapeSchema, TileJSONSchema, S2TileJSONSchema };
+
 /** S2 Face */
 export type Face = 0 | 1 | 2 | 3 | 4 | 5;
 
@@ -45,9 +50,6 @@ export type DrawType = (typeof DrawType)[keyof typeof DrawType];
 //? - - sub types: an array of a shape or a nested object which is itself a shape
 //? - - if the sub type is an array, ensure all elements are of the same type
 //? The interfaces below help describe how shapes are built by the user.
-
-import ShapeSchema from './shape.schema.json';
-export { ShapeSchema };
 
 /** Primitive types that can be found in a shape */
 export type PrimitiveShapes = 'string' | 'f32' | 'f64' | 'u64' | 'i64' | 'bool' | 'null';
@@ -107,8 +109,8 @@ export interface TileStatsMetadata {
 export type Attributions = Record<string, string>;
 
 /** Track the S2 tile bounds of each face and zoom */
-export interface FaceBounds {
-  // facesbounds[face][zoom] = [...]
+export interface S2Bounds {
+  // s2bounds[face][zoom] = [...]
   0: { [zoom: number]: BBox };
   1: { [zoom: number]: BBox };
   2: { [zoom: number]: BBox };
@@ -198,47 +200,124 @@ export interface Center {
 export interface Metadata {
   /** The version of the s2-tilejson spec */
   s2tilejson: string;
-  /** The version of the data */
-  version: string;
-  /** The name of the data */
-  name: string;
+  /** The type of the tileset */
+  type: SourceType;
   /** The extension when requesting a tile */
   extension: Extensions;
-  /** The scheme of the data */
-  scheme: Scheme;
-  /** The description of the data */
-  description: string;
-  /** The type of the data */
-  type: SourceType;
-  /** The encoding of the data */
-  encoding?: Encoding;
-  /** List of faces that have data */
+  /** List of faces that have tileset */
   faces: Face[];
-  /** WM Tile fetching bounds. Helpful to not make unecessary requests for tiles we know don't exist */
-  bounds: WMBounds;
-  /** S2 Tile fetching bounds. Helpful to not make unecessary requests for tiles we know don't exist */
-  facesbounds: FaceBounds;
   /** minzoom at which to request tiles. [default=0] */
   minzoom: number;
   /** maxzoom at which to request tiles. [default=27] */
   maxzoom: number;
-  /** The center of the data */
-  center: Center;
-  /** { ['human readable string']: 'href' } */
-  attributions: Attributions;
   /** Track layer metadata */
   layers: LayersMetaData;
+  /** WM Tile fetching bounds. Helpful to not make unecessary requests for tiles we know don't exist */
+  wmbounds?: WMBounds;
+  /** S2 Tile fetching bounds. Helpful to not make unecessary requests for tiles we know don't exist */
+  s2bounds?: S2Bounds;
+  /** Floating point bounding box array [west, south, east, north]. */
+  bounds?: BBox;
+  /** { ['human readable string']: 'href' } */
+  attributions?: Attributions;
+  /** The version of the tileset. Matches the pattern: `\d+\.\d+\.\d+\w?[\w\d]*`. */
+  version?: string;
+  /** The name of the tileset */
+  name?: string;
+  /** The scheme of the tileset */
+  scheme?: Scheme;
+  /** The description of the tileset */
+  description?: string;
+  /** The encoding of the tileset */
+  encoding?: Encoding;
+  /** The center of the tileset */
+  centerpoint?: Center;
   /** Track tile stats for each face and total overall */
   tilestats?: TileStatsMetadata;
-  /** Old spec, track basic layer metadata */
+  /** Allow additional properties */
+  [key: string]: unknown;
+
+  // old spec properties to hold for backwards compatibility
+
+  /** track basic layer metadata */
   vector_layers: VectorLayer[];
+  /**
+   * Version of the TileJSON spec used.
+   * Matches the pattern: `\d+\.\d+\.\d+\w?[\w\d]*`.
+   */
+  tilejson?: string;
+  /** Array of tile URL templates. */
+  tiles?: string[];
+  /** Attribution string. */
+  attribution?: string;
+  /** Center coordinate array [longitude, latitude, zoom]. */
+  center?: [lon: number, lat: number, zoom: number];
+  /** Array of data source URLs. */
+  data?: string[];
+  /** Fill zoom level. Must be between 0 and 30. */
+  fillzoom?: number;
+  /** Array of UTFGrid URL templates. */
+  grids?: string[];
+  /** Legend of the tileset. */
+  legend?: string;
+  /** Template for interactivity. */
+  template?: string;
+}
+
+/**
+ * # TileJSON V3.0.0
+ *
+ * Represents a TileJSON metadata object.
+ * ## Links
+ * [TileJSON Spec](https://github.com/mapbox/tilejson-spec/blob/master/3.0.0/schema.json)
+ */
+export interface MapboxTileJSONMetadata {
+  /**
+   * Version of the TileJSON spec used.
+   * Matches the pattern: `\d+\.\d+\.\d+\w?[\w\d]*`.
+   */
+  tilejson: string;
+  /** Array of tile URL templates. */
+  tiles: string[];
+  /** Array of vector layer metadata. */
+  vector_layers: VectorLayer[];
+  /** Attribution string. */
+  attribution?: string;
+  /** Bounding box array [west, south, east, north]. */
+  bounds?: BBox;
+  /** Center coordinate array [longitude, latitude, zoom]. */
+  center?: [lon: number, lat: number, zoom: number];
+  /** Array of data source URLs. */
+  data?: string[];
+  /** Description of the tileset. */
+  description?: string;
+  /** Fill zoom level. Must be between 0 and 30. */
+  fillzoom?: number;
+  /** Array of UTFGrid URL templates. */
+  grids?: string[];
+  /** Legend of the tileset. */
+  legend?: string;
+  /** Maximum zoom level. Must be between 0 and 30. */
+  maxzoom?: number;
+  /** Minimum zoom level. Must be between 0 and 30. */
+  minzoom?: number;
+  /** Name of the tileset. */
+  name?: string;
+  /** Tile scheme, e.g., `xyz` or `tms`. */
+  scheme?: Scheme;
+  /** Template for interactivity. */
+  template?: string;
+  /** Version of the tileset. Matches the pattern: `\d+\.\d+\.\d+\w?[\w\d]*`. */
+  version?: string;
   /** Allow additional properties */
   [key: string]: unknown;
 }
 
+/** When the input is unknown, it can be either an S2 TileJSON or a Mapbox TileJSON */
+export type Metadatas = Metadata | MapboxTileJSONMetadata;
+
 /** Builder class to help build the metadata */
 export class MetadataBuilder {
-  #lonLatBounds: BBox = [Infinity, Infinity, -Infinity, -Infinity];
   #faces: Set<Face> = new Set();
   #metadata: Metadata = {
     s2tilejson: '1.0.0',
@@ -250,11 +329,12 @@ export class MetadataBuilder {
     type: 'vector',
     encoding: 'none',
     faces: [],
-    bounds: {},
-    facesbounds: { 0: {}, 1: {}, 2: {}, 3: {}, 4: {}, 5: {} },
+    wmbounds: {},
+    s2bounds: { 0: {}, 1: {}, 2: {}, 3: {}, 4: {}, 5: {} },
+    bounds: [Infinity, Infinity, -Infinity, -Infinity],
     minzoom: Infinity,
     maxzoom: -Infinity,
-    center: { lon: 0, lat: 0, zoom: 0 },
+    centerpoint: { lon: 0, lat: 0, zoom: 0 },
     attributions: {},
     tilestats: { total: 0, 0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
     layers: {},
@@ -333,7 +413,7 @@ export class MetadataBuilder {
    * @param href - link to the attribution
    */
   addAttribution(displayName: string, href: string) {
-    this.#metadata.attributions[displayName] = href;
+    this.#metadata.attributions![displayName] = href;
   }
 
   /**
@@ -345,7 +425,7 @@ export class MetadataBuilder {
     // add layer
     this.#metadata.layers[name] = layer;
     // add vector layer
-    this.#metadata.vector_layers?.push({
+    this.#metadata.vector_layers!.push({
       id: name,
       description: layer.description,
       minzoom: layer.minzoom,
@@ -400,8 +480,8 @@ export class MetadataBuilder {
    */
   #updateCenter() {
     const { minzoom, maxzoom } = this.#metadata;
-    const [minlon, minlat, maxlon, maxlat] = this.#lonLatBounds;
-    this.#metadata.center = {
+    const [minlon, minlat, maxlon, maxlat] = this.#metadata.bounds!;
+    this.#metadata.centerpoint = {
       lon: (minlon + maxlon) >> 1,
       lat: (minlat + maxlat) >> 1,
       zoom: (minzoom + maxzoom) >> 1,
@@ -415,11 +495,11 @@ export class MetadataBuilder {
    * @param y - y position of the tile
    */
   #addBoundsWM(zoom: number, x: number, y: number): void {
-    if (this.#metadata.bounds[zoom] === undefined) {
-      this.#metadata.bounds[zoom] = [Infinity, Infinity, -Infinity, -Infinity];
+    if (this.#metadata.wmbounds![zoom] === undefined) {
+      this.#metadata.wmbounds![zoom] = [Infinity, Infinity, -Infinity, -Infinity];
     }
 
-    const bbox = this.#metadata.bounds[zoom];
+    const bbox = this.#metadata.wmbounds![zoom];
     bbox[0] = Math.min(bbox[0], x);
     bbox[1] = Math.min(bbox[1], y);
     bbox[2] = Math.max(bbox[2], x);
@@ -434,11 +514,11 @@ export class MetadataBuilder {
    * @param y - y position of the tile
    */
   #addBoundsS2(face: Face, zoom: number, x: number, y: number): void {
-    if (this.#metadata.facesbounds[face][zoom] === undefined) {
-      this.#metadata.facesbounds[face][zoom] = [Infinity, Infinity, -Infinity, -Infinity];
+    if (this.#metadata.s2bounds![face][zoom] === undefined) {
+      this.#metadata.s2bounds![face][zoom] = [Infinity, Infinity, -Infinity, -Infinity];
     }
 
-    const bbox = this.#metadata.facesbounds[face][zoom];
+    const bbox = this.#metadata.s2bounds![face][zoom];
     bbox[0] = Math.min(bbox[0], x);
     bbox[1] = Math.min(bbox[1], y);
     bbox[2] = Math.max(bbox[2], x);
@@ -451,64 +531,13 @@ export class MetadataBuilder {
    */
   #updateLonLatBounds(llBounds: BBox) {
     const [minlon, minlat, maxlon, maxlat] = llBounds;
-    this.#lonLatBounds[0] = Math.min(this.#lonLatBounds[0], minlon);
-    this.#lonLatBounds[1] = Math.min(this.#lonLatBounds[1], minlat);
-    this.#lonLatBounds[2] = Math.max(this.#lonLatBounds[2], maxlon);
-    this.#lonLatBounds[3] = Math.max(this.#lonLatBounds[3], maxlat);
+    const bounds = this.#metadata.bounds!;
+    bounds[0] = Math.min(bounds[0], minlon);
+    bounds[1] = Math.min(bounds[1], minlat);
+    bounds[2] = Math.max(bounds[2], maxlon);
+    bounds[3] = Math.max(bounds[3], maxlat);
   }
 }
-
-/**
- * # TileJSON V3.0.0
- *
- * Represents a TileJSON metadata object.
- * ## Links
- * [TileJSON Spec](https://github.com/mapbox/tilejson-spec/blob/master/3.0.0/schema.json)
- */
-export interface MapboxTileJSONMetadata {
-  /**
-   * Version of the TileJSON spec used.
-   * Matches the pattern: `\d+\.\d+\.\d+\w?[\w\d]*`.
-   */
-  tilejson: string;
-  /** Array of tile URL templates. */
-  tiles: string[];
-  /** Array of vector layer metadata. */
-  vector_layers: VectorLayer[];
-  /** Attribution string. */
-  attribution?: string;
-  /** Bounding box array [west, south, east, north]. */
-  bounds?: BBox;
-  /** Center coordinate array [longitude, latitude, zoom]. */
-  center?: [lon: number, lat: number, zoom: number];
-  /** Array of data source URLs. */
-  data?: string[];
-  /** Description of the tileset. */
-  description?: string;
-  /** Fill zoom level. Must be between 0 and 30. */
-  fillzoom?: number;
-  /** Array of UTFGrid URL templates. */
-  grids?: string[];
-  /** Legend of the tileset. */
-  legend?: string;
-  /** Maximum zoom level. Must be between 0 and 30. */
-  maxzoom?: number;
-  /** Minimum zoom level. Must be between 0 and 30. */
-  minzoom?: number;
-  /** Name of the tileset. */
-  name?: string;
-  /** Tile scheme, e.g., `xyz` or `tms`. */
-  scheme?: Scheme;
-  /** Template for interactivity. */
-  template?: string;
-  /** Version of the tileset. Matches the pattern: `\d+\.\d+\.\d+\w?[\w\d]*`. */
-  version?: string;
-  /** Allow additional properties */
-  [key: string]: unknown;
-}
-
-/** When the input is unknown, it can be either an S2 TileJSON or a Mapbox TileJSON */
-export type Metadatas = Metadata | MapboxTileJSONMetadata;
 
 /**
  * If you're not sure which tilejson you are reading (Mapbox's spec or S2's spec), you can treat
@@ -522,6 +551,7 @@ export function toMetadata(metadatas: Metadatas): Metadata {
   } else {
     const [lon, lat, zoom] = metadatas.center ?? [0, 0, 0];
     return {
+      ...metadatas,
       s2tilejson: '1.0.0',
       version: metadatas.version ?? '1.0.0',
       name: metadatas.name ?? 'Converted from Mapbox TileJSON to S2 TileJSON',
@@ -535,15 +565,15 @@ export function toMetadata(metadatas: Metadatas): Metadata {
       /** List of faces that have data */
       faces: [0],
       /** WM Tile fetching bounds. Helpful to not make unecessary requests for tiles we know don't exist */
-      bounds: {},
+      wmbounds: {},
       /** S2 Tile fetching bounds. Helpful to not make unecessary requests for tiles we know don't exist */
-      facesbounds: { 0: {}, 1: {}, 2: {}, 3: {}, 4: {}, 5: {} },
+      s2bounds: { 0: {}, 1: {}, 2: {}, 3: {}, 4: {}, 5: {} },
       /** minzoom at which to request tiles. [default=0] */
       minzoom: metadatas.minzoom ?? 0,
       /** maxzoom at which to request tiles. [default=27] */
       maxzoom: metadatas.maxzoom ?? 27,
       /** The center of the data */
-      center: { lon, lat, zoom },
+      centerpoint: { lon, lat, zoom },
       /** { ['human readable string']: 'href' } */
       attributions: extractLinkInfo(metadatas.attribution) ?? {},
       /** Track layer metadata */
