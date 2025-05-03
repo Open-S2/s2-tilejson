@@ -958,7 +958,10 @@ mod tests {
 
         let meta_str = serde_json::to_string(&resulting_metadata).unwrap();
 
-        assert_eq!(meta_str, "{\"s2tilejson\":\"1.0.0\",\"version\":\"1.0.0\",\"name\":\"OSM\",\"scheme\":\"fzxy\",\"description\":\"A free editable map of the whole world.\",\"type\":\"vector\",\"extension\":\"pbf\",\"encoding\":\"none\",\"faces\":[0,1],\"bounds\":[-120.0,-20.0,44.0,72.0],\"wmbounds\":{\"0\":[0,0,0,0]},\"s2bounds\":{\"0\":{},\"1\":{\"5\":[22,37,22,37]},\"2\":{},\"3\":{},\"4\":{},\"5\":{}},\"minzoom\":0,\"maxzoom\":13,\"centerpoint\":{\"lon\":-38.0,\"lat\":26.0,\"zoom\":6},\"attributions\":{\"OpenStreetMap\":\"https://www.openstreetmap.org/copyright/\"},\"layers\":{\"water_lines\":{\"description\":\"water_lines\",\"minzoom\":0,\"maxzoom\":13,\"draw_types\":[2],\"shape\":{\"class\":\"string\",\"info\":{\"name\":\"string\",\"value\":\"i64\"},\"offset\":\"f64\"}}},\"tilestats\":{\"total\":2,\"0\":0,\"1\":1,\"2\":0,\"3\":0,\"4\":0,\"5\":0},\"vector_layers\":[{\"id\":\"water_lines\",\"description\":\"water_lines\",\"minzoom\":0,\"maxzoom\":13,\"fields\":{}}],\"tilejson\":null}");
+        assert_eq!(
+            meta_str,
+            "{\"s2tilejson\":\"1.0.0\",\"version\":\"1.0.0\",\"name\":\"OSM\",\"scheme\":\"fzxy\",\"description\":\"A free editable map of the whole world.\",\"type\":\"vector\",\"extension\":\"pbf\",\"encoding\":\"none\",\"faces\":[0,1],\"bounds\":[-120.0,-20.0,44.0,72.0],\"wmbounds\":{\"0\":[0,0,0,0]},\"s2bounds\":{\"0\":{},\"1\":{\"5\":[22,37,22,37]},\"2\":{},\"3\":{},\"4\":{},\"5\":{}},\"minzoom\":0,\"maxzoom\":13,\"centerpoint\":{\"lon\":-38.0,\"lat\":26.0,\"zoom\":6},\"attributions\":{\"OpenStreetMap\":\"https://www.openstreetmap.org/copyright/\"},\"layers\":{\"water_lines\":{\"description\":\"water_lines\",\"minzoom\":0,\"maxzoom\":13,\"draw_types\":[2],\"shape\":{\"class\":\"string\",\"info\":{\"name\":\"string\",\"value\":\"i64\"},\"offset\":\"f64\"}}},\"tilestats\":{\"total\":2,\"0\":0,\"1\":1,\"2\":0,\"3\":0,\"4\":0,\"5\":0},\"vector_layers\":[{\"id\":\"water_lines\",\"description\":\"water_lines\",\"minzoom\":0,\"maxzoom\":13,\"fields\":{}}],\"tilejson\":null}"
+        );
 
         let meta_reparsed: Metadata =
             serde_json::from_str(&meta_str).unwrap_or_else(|e| panic!("ERROR: {}", e));
