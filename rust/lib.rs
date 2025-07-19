@@ -61,6 +61,61 @@ impl From<u8> for DrawType {
         }
     }
 }
+impl<D: MValueCompatible> From<&VectorGeometry<D>> for DrawType {
+    fn from(geometry: &VectorGeometry<D>) -> DrawType {
+        match geometry {
+            VectorGeometry::Point(p) => {
+                if p.is_3d {
+                    DrawType::Points3D
+                } else {
+                    DrawType::Points
+                }
+            }
+            VectorGeometry::MultiPoint(mp) => {
+                if mp.is_3d {
+                    DrawType::Points3D
+                } else {
+                    DrawType::Points
+                }
+            }
+            VectorGeometry::LineString(l) => {
+                if l.is_3d {
+                    DrawType::Lines3D
+                } else {
+                    DrawType::Lines
+                }
+            }
+            VectorGeometry::MultiLineString(ml) => {
+                if ml.is_3d {
+                    DrawType::Lines3D
+                } else {
+                    DrawType::Lines
+                }
+            }
+            VectorGeometry::Polygon(p) => {
+                if p.is_3d {
+                    DrawType::Polygons3D
+                } else {
+                    DrawType::Polygons
+                }
+            }
+            VectorGeometry::MultiPolygon(mp) => {
+                if mp.is_3d {
+                    DrawType::Polygons3D
+                } else {
+                    DrawType::Polygons
+                }
+            }
+        }
+    }
+}
+impl<M: Clone, P: MValueCompatible, D: MValueCompatible> From<&VectorFeature<M, P, D>>
+    for DrawType
+{
+    fn from(feature: &VectorFeature<M, P, D>) -> DrawType {
+        DrawType::from(&feature.geometry)
+    }
+}
 impl Serialize for DrawType {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
@@ -1529,5 +1584,96 @@ mod tests {
         let from_string_unknown: UnknownMetadata = serde_json::from_str(&to_string).unwrap();
         let from_string: Metadata = from_string_unknown.to_metadata();
         assert_eq!(meta, from_string);
+    }
+
+    #[test]
+    fn test_vector_feature_to_draw_type() {
+        // Points
+        let feature: VectorFeature<(), Properties, MValue> = VectorFeature {
+            geometry: VectorGeometry::new_point(VectorPoint::from_xy(0., 0.), None),
+            ..Default::default()
+        };
+        assert_eq!(DrawType::Points, (&feature).into());
+        let feature: VectorFeature<(), Properties, MValue> = VectorFeature {
+            geometry: VectorGeometry::new_multipoint(vec![VectorPoint::from_xy(0., 0.)], None),
+            ..Default::default()
+        };
+        assert_eq!(DrawType::Points, (&feature).into());
+        // Points3D
+        let feature: VectorFeature<(), Properties, MValue> = VectorFeature {
+            geometry: VectorGeometry::new_point(VectorPoint::from_xyz(0., 0., 1.0), None),
+            ..Default::default()
+        };
+        assert_eq!(DrawType::Points3D, (&feature).into());
+        let feature: VectorFeature<(), Properties, MValue> = VectorFeature {
+            geometry: VectorGeometry::new_multipoint(
+                vec![VectorPoint::from_xyz(0., 0., 1.0)],
+                None,
+            ),
+            ..Default::default()
+        };
+        assert_eq!(DrawType::Points3D, (&feature).into());
+        // Lines
+        let feature: VectorFeature<(), Properties, MValue> = VectorFeature {
+            geometry: VectorGeometry::new_linestring(vec![VectorPoint::from_xy(0., 0.)], None),
+            ..Default::default()
+        };
+        assert_eq!(DrawType::Lines, (&feature).into());
+        let feature: VectorFeature<(), Properties, MValue> = VectorFeature {
+            geometry: VectorGeometry::new_multilinestring(
+                vec![vec![VectorPoint::from_xy(0., 0.)]],
+                None,
+            ),
+            ..Default::default()
+        };
+        assert_eq!(DrawType::Lines, (&feature).into());
+        // Lines3D
+        let feature: VectorFeature<(), Properties, MValue> = VectorFeature {
+            geometry: VectorGeometry::new_linestring(
+                vec![VectorPoint::from_xyz(0., 0., 1.0)],
+                None,
+            ),
+            ..Default::default()
+        };
+        assert_eq!(DrawType::Lines3D, (&feature).into());
+        let feature: VectorFeature<(), Properties, MValue> = VectorFeature {
+            geometry: VectorGeometry::new_multilinestring(
+                vec![vec![VectorPoint::from_xyz(0., 0., 1.0)]],
+                None,
+            ),
+            ..Default::default()
+        };
+        assert_eq!(DrawType::Lines3D, (&feature).into());
+        // Polygons
+        let feature: VectorFeature<(), Properties, MValue> = VectorFeature {
+            geometry: VectorGeometry::new_polygon(vec![vec![VectorPoint::from_xy(0., 0.)]], None),
+            ..Default::default()
+        };
+        assert_eq!(DrawType::Polygons, (&feature).into());
+        let feature: VectorFeature<(), Properties, MValue> = VectorFeature {
+            geometry: VectorGeometry::new_multipolygon(
+                vec![vec![vec![VectorPoint::from_xy(0., 0.)]]],
+                None,
+            ),
+            ..Default::default()
+        };
+        assert_eq!(DrawType::Polygons, (&feature).into());
+        // Polygons3D
+        let feature: VectorFeature<(), Properties, MValue> = VectorFeature {
+            geometry: VectorGeometry::new_polygon(
+                vec![vec![VectorPoint::from_xyz(0., 0., 1.0)]],
+                None,
+            ),
+            ..Default::default()
+        };
+        assert_eq!(DrawType::Polygons3D, (&feature).into());
+        let feature: VectorFeature<(), Properties, MValue> = VectorFeature {
+            geometry: VectorGeometry::new_multipolygon(
+                vec![vec![vec![VectorPoint::from_xyz(0., 0., 1.0)]]],
+                None,
+            ),
+            ..Default::default()
+        };
+        assert_eq!(DrawType::Polygons3D, (&feature).into());
     }
 }
