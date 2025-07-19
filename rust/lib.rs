@@ -142,7 +142,7 @@ impl<'de> Deserialize<'de> for DrawType {
             6 => Ok(DrawType::Polygons3D),
             7 => Ok(DrawType::Raster),
             8 => Ok(DrawType::Grid),
-            _ => Err(serde::de::Error::custom(format!("unknown DrawType variant: {}", value))),
+            _ => Err(serde::de::Error::custom(format!("unknown DrawType variant: {value}"))),
         }
     }
 }
@@ -564,7 +564,7 @@ impl Default for Metadata {
 ///
 /// ```rs
 /// let meta: Metadata =
-///   serde_json::from_str(meta_str).unwrap_or_else(|e| panic!("ERROR: {}", e));
+///   serde_json::from_str(meta_str).unwrap_or_else(|e| panic!("ERROR: {e}"));
 /// ```
 ///
 /// Represents a TileJSON metadata object for the old Mapbox spec.
@@ -902,8 +902,7 @@ mod tests {
             }
         }
         "#;
-        let shape: Shape =
-            serde_json::from_str(shape_str).unwrap_or_else(|e| panic!("ERROR: {}", e));
+        let shape: Shape = serde_json::from_str(shape_str).unwrap_or_else(|e| panic!("ERROR: {e}"));
         let layer = LayerMetaData {
             minzoom: 0,
             maxzoom: 13,
@@ -1019,7 +1018,7 @@ mod tests {
         );
 
         let meta_reparsed: Metadata =
-            serde_json::from_str(&meta_str).unwrap_or_else(|e| panic!("ERROR: {}", e));
+            serde_json::from_str(&meta_str).unwrap_or_else(|e| panic!("ERROR: {e}"));
         assert_eq!(meta_reparsed, resulting_metadata);
     }
 
@@ -1380,7 +1379,7 @@ mod tests {
         }"#;
 
         let _meta: Metadata =
-            serde_json::from_str(meta_str).unwrap_or_else(|e| panic!("ERROR: {}", e));
+            serde_json::from_str(meta_str).unwrap_or_else(|e| panic!("ERROR: {e}"));
     }
 
     #[test]
@@ -1429,7 +1428,7 @@ mod tests {
         }"#;
 
         let meta_mapbox: MapboxTileJSONMetadata =
-            serde_json::from_str(meta_str).unwrap_or_else(|e| panic!("ERROR: {}", e));
+            serde_json::from_str(meta_str).unwrap_or_else(|e| panic!("ERROR: {e}"));
         let meta_new = meta_mapbox.to_metadata();
         assert_eq!(
             meta_new,
@@ -1467,7 +1466,7 @@ mod tests {
         );
 
         let meta_mapbox_from_unknown: UnknownMetadata =
-            serde_json::from_str(meta_str).unwrap_or_else(|e| panic!("ERROR: {}", e));
+            serde_json::from_str(meta_str).unwrap_or_else(|e| panic!("ERROR: {e}"));
         let meta_new = meta_mapbox_from_unknown.to_metadata();
         assert_eq!(
             meta_new,
@@ -1525,7 +1524,7 @@ mod tests {
         "#;
 
         let malformed_success: UnknownMetadata =
-            serde_json::from_str(meta_str).unwrap_or_else(|e| panic!("ERROR: {}", e));
+            serde_json::from_str(meta_str).unwrap_or_else(|e| panic!("ERROR: {e}"));
 
         let meta: Metadata = malformed_success.to_metadata();
         assert_eq!(

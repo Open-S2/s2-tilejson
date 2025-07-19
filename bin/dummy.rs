@@ -24,7 +24,7 @@ fn main() {
         }
     }
     "#;
-    let shape: Shape = serde_json::from_str(shape_str).unwrap_or_else(|e| panic!("ERROR: {}", e));
+    let shape: Shape = serde_json::from_str(shape_str).unwrap_or_else(|e| panic!("ERROR: {e}"));
     let layer = LayerMetaData {
         minzoom: 0,
         maxzoom: 13,
