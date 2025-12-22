@@ -1,7 +1,79 @@
 #![no_std]
 #![forbid(unsafe_code)]
 #![deny(missing_docs)]
-//! The `s2-tilejson` Rust crate... TODO
+#![cfg_attr(docsrs, feature(doc_cfg))]
+
+//! # S2 Tile JSON 🌎 🗺️
+//!
+//! ```text                                                                            
+//!                       .d8888. .d888b.                        
+//!                       88'  YP VP  `8D                        
+//!                       `8bo.      odD'                        
+//!                         `Y8b.  .88'                          
+//!                       db   8D j88.                           
+//!                       `8888Y' 888888D                        
+//!                                                              
+//!                                                              
+//!              d888888b d888888b db      d88888b               
+//!              `~~88~~'   `88'   88      88'                   
+//!                 88       88    88      88ooooo               
+//!                 88       88    88      88~~~~~               
+//!                 88      .88.   88booo. 88.                   
+//!                 YP    Y888888P Y88888P Y88888P               
+//!                                                              
+//!                                                              
+//!                 d88b .d8888.  .d88b.  d8b   db               
+//!                 `8P' 88'  YP .8P  Y8. 888o  88               
+//!                  88  `8bo.   88    88 88V8o 88               
+//!                  88    `Y8b. 88    88 88 V8o88               
+//!              db. 88  db   8D `8b  d8' 88  V888               
+//!              Y8888P  `8888Y'  `Y88P'  VP   V8P                                                                                                                               
+//! ```
+//!
+//! ## Install
+//!
+//! ```bash
+//! cargo add s2-tilejson
+//! ```
+//!
+//! ## About
+//!
+//! TileJSON is a [backwards-compatible](https://github.com/mapbox/tilejson-spec) open standard for
+//! representing map tile metadata.
+//!
+//! This specification attempts to create a standard for representing metadata about multiple
+//! types of web-based map layers, to aid clients in configuration and browsing.
+//!
+//! ## Usage
+//!
+//! The Documentation is very thorough in this library. Therefore the best thing to do is follow
+//! the links provided as needed.
+//!
+//! ### Tools
+//!
+//! - [`crate::MetadataBuilder`]: Build a Metadata from scratch. Helper tool when constructing a set of tiles
+//!
+//! ### Top Level Types
+//!
+//! - [`crate::Metadata`]: Represents a TileJSON metadata object for the new S2 spec.
+//! - [`crate::MapboxTileJSONMetadata`]: Represents a TileJSON metadata object for the old Mapbox spec.
+//! - [`crate::UnknownMetadata`]: If we don't know which spec we are reading, we can treat the input as either.
+//!
+//! ### Sub Types
+//!
+//! - [`crate::LonLatBounds`]: Use bounds as floating point numbers for longitude and latitude
+//! - [`crate::TileBounds`]: Use bounds as u64 for the tile index range
+//! - [`crate::DrawType`]: Description of what kind of data is in the tile
+//! - [`crate::LayerMetaData`]: Each layer has metadata associated with it. Defined as blueprints pre-construction of vector data.
+//! - [`crate::TileStatsMetadata`]: Tilestats is simply a tracker to see where most of the tiles live
+//! - [`crate::Attributions`]: Attribution data is stored in an object. The key is the name of the attribution, and the value is the link
+//! - [`crate::FaceBounds`]: Track the S2 tile bounds of each face and zoom
+//! - [`crate::WMBounds`]: Track the WM tile bounds of each zoom `[zoom: number]: BBox`
+//! - [`crate::SourceType`]: Check the source type of the layer
+//! - [`crate::Encoding`]: Store the encoding of the data
+//! - [`crate::VectorLayer`]: Old spec tracks basic vector data
+//! - [`crate::Scheme`]: Default S2 tile scheme is fzxy Default Web Mercator tile scheme is xyz Adding a t prefix to the scheme will change the request to be time sensitive TMS is an oudated version that is not supported by s2maps-gpu
+//! - [`crate::Center`]: Store where the center of the data lives
 
 extern crate alloc;
 
@@ -450,7 +522,19 @@ pub struct Center {
     pub zoom: u8,
 }
 
-/// S2 TileJSON Metadata for the tile data
+/// # S2 TileJSON V1.0.0
+///
+/// ```rs
+/// let meta: Metadata =
+///   serde_json::from_str(meta_str).unwrap_or_else(|e| panic!("ERROR: {e}"));
+/// ```
+///
+/// Represents a TileJSON metadata object for the new S2 spec.
+///
+/// If you're unsure of which spec you're using, use the [`UnknownMetadata`] type.
+///
+/// ## Links
+/// [S2TileJSON Spec](https://github.com/Open-S2/s2-tilejson/tree/master/s2-tilejson-spec/1.0.0)
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 #[serde(default)]
 pub struct Metadata {
@@ -563,11 +647,12 @@ impl Default for Metadata {
 /// You never have to use this. Parsing/conversion will be done for you. by using:
 ///
 /// ```rs
-/// let meta: Metadata =
+/// let meta: UnknownMetadata =
 ///   serde_json::from_str(meta_str).unwrap_or_else(|e| panic!("ERROR: {e}"));
 /// ```
 ///
 /// Represents a TileJSON metadata object for the old Mapbox spec.
+///
 /// ## Links
 /// [TileJSON Spec](https://github.com/mapbox/tilejson-spec/blob/master/3.0.0/schema.json)
 #[derive(Serialize, Deserialize, Debug, Clone, Default, PartialEq)]
@@ -685,7 +770,29 @@ impl UnknownMetadata {
     }
 }
 
-/// Builder for the metadata
+/// # Metadata Builder
+///
+/// ## Description
+///
+/// Build a Metadata from scratch. Helper tool when constructing a set of tiles
+///
+/// ## Usage
+/// - [`MetadataBuilder::commit`]: Commit the metadata and take ownership of a [`Metadata`]
+/// - [`MetadataBuilder::set_name`]: Set the description of the data
+/// - [`MetadataBuilder::set_scheme`]: Set the scheme of the data. [default=fzxy]
+/// - [`MetadataBuilder::set_extension`]: Set the extension of the data. [default=pbf]
+/// - [`MetadataBuilder::set_type`]: Set the type of the data. [default=vector]
+/// - [`MetadataBuilder::set_version`]: Set the version of the data
+/// - [`MetadataBuilder::set_description`]: Set the description of the data
+/// - [`MetadataBuilder::set_encoding`]: Set the encoding of the data. [default=none]
+/// - [`MetadataBuilder::add_attribution`]: Add an attribution to the data
+/// - [`MetadataBuilder::add_layer`]: Add a layer to the data
+/// - [`MetadataBuilder::add_tile_wm`]: Add the WM tile metadata
+/// - [`MetadataBuilder::add_tile_s2`]: Add the S2 tile metadata
+/// - [`MetadataBuilder::update_center`]: Update the center now that all tiles have been added
+/// - [`MetadataBuilder::add_bounds_wm`]: Add the bounds of the tile for WM data
+/// - [`MetadataBuilder::add_bounds_s2`]: Add the bounds of the tile for S2 data
+/// - [`MetadataBuilder::update_lon_lat_bounds`]: Update the lon-lat bounds so eventually we can find the center point of the data
 #[derive(Debug, Clone)]
 pub struct MetadataBuilder {
     lon_lat_bounds: LonLatBounds,
