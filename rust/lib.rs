@@ -95,7 +95,7 @@ pub type LonLatBounds = BBox<f64>;
 pub type TileBounds = BBox<u64>;
 
 /// 1: points, 2: lines, 3: polys, 4: points3D, 5: lines3D, 6: polys3D
-#[derive(Copy, Clone, Debug, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum DrawType {
     /// Collection of points
     Points = 1,
@@ -242,7 +242,7 @@ pub struct LayerMetaData {
 pub type LayersMetaData = BTreeMap<String, LayerMetaData>;
 
 /// Tilestats is simply a tracker to see where most of the tiles live
-#[derive(Serialize, Deserialize, Debug, Default, Clone, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, Default, Clone, Copy, PartialEq)]
 pub struct TileStatsMetadata {
     /// total number of tiles
     #[serde(default)]
@@ -292,10 +292,6 @@ impl TileStatsMetadata {
         self.total += 1;
     }
 }
-
-/// Attribution data is stored in an object.
-/// The key is the name of the attribution, and the value is the link
-pub type Attributions = BTreeMap<String, String>;
 
 /// Track the S2 tile bounds of each face and zoom
 #[derive(Serialize, Deserialize, Debug, Default, Clone, PartialEq)]
@@ -351,7 +347,7 @@ impl FaceBounds {
 pub type WMBounds = BTreeMap<u8, TileBounds>;
 
 /// Check the source type of the layer
-#[derive(Serialize, Debug, Default, Clone, PartialEq)]
+#[derive(Serialize, Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 #[serde(rename_all = "lowercase")]
 pub enum SourceType {
     /// Vector data
@@ -396,7 +392,7 @@ impl<'de> Deserialize<'de> for SourceType {
 }
 
 /// Store the encoding of the data
-#[derive(Serialize, Deserialize, Debug, Default, Clone, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 #[serde(rename_all = "lowercase")]
 pub enum Encoding {
     /// No encoding
@@ -473,7 +469,7 @@ pub struct VectorLayer {
 /// Default Web Mercator tile scheme is `xyz`
 /// Adding a t prefix to the scheme will change the request to be time sensitive
 /// TMS is an oudated version that is not supported by s2maps-gpu
-#[derive(Serialize, Deserialize, Debug, Default, Clone, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 #[serde(rename_all = "lowercase")]
 pub enum Scheme {
     /// The default scheme with faces (S2)
@@ -577,6 +573,9 @@ pub struct Metadata {
     pub tilestats: TileStatsMetadata,
     /// Old spec but required for functional compatibility, track basic layer metadata
     pub vector_layers: Vec<VectorLayer>,
+    /// The time interval in milliseconds each frame is.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub interval: Option<i64>,
 
     // Old spec
     /// Version of the TileJSON spec used. Matches the pattern: `^\d+\.\d+\.\d+\w?[\w\d]*$`.
@@ -624,10 +623,11 @@ impl Default for Metadata {
             minzoom: 0,
             maxzoom: 27,
             centerpoint: Center::default(),
-            attributions: BTreeMap::new(),
+            attributions: Attributions::new(),
             layers: LayersMetaData::default(),
             tilestats: TileStatsMetadata::default(),
             vector_layers: Vec::new(),
+            interval: None,
             attribution: None,
             fillzoom: None,
             center: None,
@@ -972,7 +972,7 @@ fn extract_link_info(html_string: &str) -> Option<Attributions> {
     let text_end = html_string.find("</a>")?;
     let text_value = &html_string[text_value_start..text_end];
 
-    let mut map = BTreeMap::new();
+    let mut map = Attributions::new();
     map.insert(text_value.into(), href_value.into());
 
     Some(map)
@@ -1050,7 +1050,7 @@ mod tests {
                 r#type: "vector".into(),
                 encoding: "none".into(),
                 extension: "pbf".into(),
-                attributions: BTreeMap::from([(
+                attributions: Attributions::from([(
                     "OpenStreetMap".into(),
                     "https://www.openstreetmap.org/copyright/".into()
                 ),]),
@@ -1547,7 +1547,7 @@ mod tests {
                 r#type: "vector".into(),
                 encoding: Encoding::None, // Changed from "none".into() to None
                 extension: "pbf".into(),
-                attributions: BTreeMap::from([(
+                attributions: Attributions::from([(
                     "OSM contributors".into(),
                     "https://openstreetmap.org".into()
                 )]),
@@ -1585,7 +1585,7 @@ mod tests {
                 r#type: "vector".into(),
                 encoding: Encoding::None, // Changed from "none".into() to None
                 extension: "pbf".into(),
-                attributions: BTreeMap::default(),
+                attributions: Attributions::default(),
                 bounds: BBox::new(-180., -85., 180., 85.),
                 vector_layers: meta_mapbox.vector_layers.clone(),
                 maxzoom: 18,
@@ -1659,7 +1659,7 @@ mod tests {
                 minzoom: 0,
                 maxzoom: 3,
                 centerpoint: Center { lon: 0.0, lat: 0.0, zoom: 0 },
-                attributions: BTreeMap::default(),
+                attributions: Attributions::default(),
                 layers: BTreeMap::default(),
                 tilestats: TileStatsMetadata {
                     total: 0,
