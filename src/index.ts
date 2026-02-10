@@ -587,7 +587,7 @@ export function toMetadata(metadatas: Metadatas): Metadata {
 /**
  * Extract href and text from <a href="href">text</a>
  * @param htmlString - html string to extract href and text from
- * @returns - { [name]: href }
+ * @returns An object with `{ [name]: href }` or undefined
  */
 function extractLinkInfo(htmlString?: string): Record<string, string> | undefined {
   if (htmlString === undefined) return;

@@ -54,56 +54,56 @@ cargo add s2-tilejson
 ## Usage
 
 ```ts
-import { MetadataBuilder } from 's2-tilejson'
-import type { Metadata, Shape, LayerMetaData, BBox } from 's2-tilejson'
+import { MetadataBuilder } from 's2-tilejson';
+import type { Metadata, Shape, LayerMetaData, BBox } from 's2-tilejson';
 
-const metaBuilder = new MetadataBuilder()
+const metaBuilder = new MetadataBuilder();
 
 // on initial use be sure to update basic metadata:
-metaBuilder.setName('OSM')
-metaBuilder.setDescription('A free editable map of the whole world.')
-metaBuilder.setVersion('1.0.0')
-metaBuilder.setScheme('fzxy') // 'fzxy' | 'tfzxy' | 'xyz' | 'txyz' | 'tms'
-metaBuilder.setType('vector') // 'vector' | 'json' | 'raster' | 'raster-dem' | 'grid' | 'markers'
-metaBuilder.setEncoding('none') // 'gz' | 'br' | 'none'
-metaBuilder.addAttribution('OpenStreetMap', 'https://www.openstreetmap.org/copyright/')
+metaBuilder.setName('OSM');
+metaBuilder.setDescription('A free editable map of the whole world.');
+metaBuilder.setVersion('1.0.0');
+metaBuilder.setScheme('fzxy'); // 'fzxy' | 'tfzxy' | 'xyz' | 'txyz' | 'tms'
+metaBuilder.setType('vector'); // 'vector' | 'json' | 'raster' | 'raster-dem' | 'grid' | 'markers'
+metaBuilder.setEncoding('none'); // 'gz' | 'br' | 'none'
+metaBuilder.addAttribution('OpenStreetMap', 'https://www.openstreetmap.org/copyright/');
 
 // Vector Specific: add layers based on how you want to parse data from a source:
 
 metaBuilder.addLayer('water_lines', {
-    minzoom: 0,
-    maxzoom: 13,
-    drawTypes: [2],
-    shape: {
-        class: 'string',
-        offset: 'f64',
-        info: {
-            name: 'string',
-            value: 'i64'
-        }
-    } as Shape,
-    m_shape: null
-} as LayerMetaData)
+  minzoom: 0,
+  maxzoom: 13,
+  drawTypes: [2],
+  shape: {
+    class: 'string',
+    offset: 'f64',
+    info: {
+      name: 'string',
+      value: 'i64',
+    },
+  } as Shape,
+  m_shape: null,
+} as LayerMetaData);
 
 // as you build tiles, add the tiles metadata:
-const lonLatBoundsForTile: BBox = [-180, -90, 180, 90]
+const lonLatBoundsForTile: BBox = [-180, -90, 180, 90];
 // WM:
-metaBuilder.addTileWM(zoom, x, y, lonLatBoundsForTile)
+metaBuilder.addTileWM(zoom, x, y, lonLatBoundsForTile);
 // S2:
-metaBuilder.addTileS2(face, zoom, x, y, lonLatBoundsForTile)
+metaBuilder.addTileS2(face, zoom, x, y, lonLatBoundsForTile);
 
 // finally to get the resulting metadata:
-const metadata: Metadata = metaBuilder.commit()
+const metadata: Metadata = metaBuilder.commit();
 ```
 
 If you're not sure which tilejson you are reading (Mapbox's spec or S2's spec), you can treat the input as either:
 
 ```ts
-import { toMetadata } from 's2-tilejson'
+import { toMetadata } from 's2-tilejson';
 
-import type { Metadata, Metadatas } from 's2-tilejson'
+import type { Metadata, Metadatas } from 's2-tilejson';
 
-const metadata: Metadata = toMetadata(input as Metadatas)
+const metadata: Metadata = toMetadata(input as Metadatas);
 ```
 
 this helps with typesafety and type checking. The only major important differences in usecases is that Mapbox spec treats the variable `tiles` as a list of input URLs and `center` is an array instead of an object.

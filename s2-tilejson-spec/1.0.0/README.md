@@ -44,7 +44,7 @@ S2-TileJSON manifest files use the JSON format as described in [RFC 8259](https:
 
 The following describes the structure of a S2-TileJSON object. Implementations MUST treat unknown keys as if they weren't present. However, implementations MUST expose unknown key value pairs so users can optionally handle these keys. Implementations MUST treat invalid values for keys as if they were not present. If the key is optional and the value is invalid, the default value MAY be applied. If the key is required, implementations MUST treat the entire S2-TileJSON manifest file as invalid and refuse operation.
 
-*The word "implementation" in the following sections refers to services or tools that serve, generate, or validate S2-TileJSON objects.*
+_The word "implementation" in the following sections refers to services or tools that serve, generate, or validate S2-TileJSON objects._
 
 ### 3.1 `s2-tilejson`
 
@@ -177,7 +177,7 @@ The first value is the longitude, the second is latitude (both in WGS:84 values)
   "centerpoint": {
     "lon": -76.275329586789,
     "lat": 39.153492567373,
-    "zoom": 8 
+    "zoom": 8
   }
 }
 ```
@@ -212,7 +212,7 @@ OPTIONAL. Integer. Default: `null`.
 
 An integer specifying the zoom level from which to generate overzoomed tiles. Implementations MAY generate overzoomed tiles from parent tiles if the requested zoom level does not exist. In most cases, overzoomed tiles are generated from the maximum zoom level of the set of tiles. If fillzoom is specified, the overzoomed tile MAY be generated from the fillzoom level.
 
-For example, in a set of tiles with maxzoom 10 and *no* fillzoom specified, a request for a z11 tile will use the z10 parent tiles to generate the new, overzoomed z11 tile. If the same TileJSON object had fillzoom specified at z7, a request for a z11 tile would use the z7 tile instead of z10.
+For example, in a set of tiles with maxzoom 10 and _no_ fillzoom specified, a request for a z11 tile will use the z10 parent tiles to generate the new, overzoomed z11 tile. If the same TileJSON object had fillzoom specified at z7, a request for a z11 tile would use the z7 tile instead of z10.
 
 While TileJSON may specify rules for overzooming tiles, it is ultimately up to the tile serving client or renderer to implement overzooming.
 

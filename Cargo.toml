@@ -14,17 +14,17 @@ keywords = ["s2-tilejson", "earcut", "gis", "low-cost-code"]
 license = "MIT"
 # Include only specific files and directories
 exclude = [
-    "/assets",
-    "/benchmarks",
-    "/coverage",
-    "/dist",
-    "/docs",
-    "/test",
-    "/tools",
-    "/src",
-    ".github",
-    ".helix",
-    "bin/dummy.rs",
+  "/assets",
+  "/benchmarks",
+  "/coverage",
+  "/dist",
+  "/docs",
+  "/test",
+  "/tools",
+  "/src",
+  ".github",
+  ".helix",
+  "bin/dummy.rs",
 ]
 
 [[bin]]
