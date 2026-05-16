@@ -253,9 +253,10 @@
         "2": { "type": "number" },
         "3": { "type": "number" },
         "4": { "type": "number" },
-        "5": { "type": "number" }
+        "5": { "type": "number" },
+        "6": { "type": "number" }
       },
-      "required": ["total", "0", "1", "2", "3", "4", "5"],
+      "required": ["total", "0", "1", "2", "3", "4", "5", "6"],
       "additionalProperties": false
     },
     "Attributions": {
@@ -282,9 +283,10 @@
         "2": { "$ref": "#/definitions/ZoomBBoxMap" },
         "3": { "$ref": "#/definitions/ZoomBBoxMap" },
         "4": { "$ref": "#/definitions/ZoomBBoxMap" },
-        "5": { "$ref": "#/definitions/ZoomBBoxMap" }
+        "5": { "$ref": "#/definitions/ZoomBBoxMap" },
+        "6": { "$ref": "#/definitions/ZoomBBoxMap" }
       },
-      "required": ["0", "1", "2", "3", "4", "5"],
+      "required": ["0", "1", "2", "3", "4", "5", "6"],
       "additionalProperties": false
     },
     "WMBounds": {

@@ -3,8 +3,7 @@ import ShapeSchema from './shape.schema.json' with { type: 'json' };
 import TileJSONSchema from './tilejson.schema.json' with { type: 'json' };
 export { ShapeSchema, TileJSONSchema, S2TileJSONSchema };
 
-/** S2 Face */
-export type Face = 0 | 1 | 2 | 3 | 4 | 5;
+import type { Face } from 's2json-spec';
 
 /** The Bounding box, whether the tile bounds or lon-lat bounds or whatever. */
 export type BBox = [left: number, bottom: number, right: number, top: number];
@@ -100,6 +99,7 @@ export interface TileStatsMetadata {
   3: number;
   4: number;
   5: number;
+  6: number;
 }
 
 /**
@@ -117,6 +117,7 @@ export interface S2Bounds {
   3: { [zoom: number]: BBox };
   4: { [zoom: number]: BBox };
   5: { [zoom: number]: BBox };
+  6: { [zoom: number]: BBox };
 }
 
 /** Track the WM tile bounds of each zoom */
@@ -330,13 +331,13 @@ export class MetadataBuilder {
     encoding: 'none',
     faces: [],
     wmbounds: {},
-    s2bounds: { 0: {}, 1: {}, 2: {}, 3: {}, 4: {}, 5: {} },
+    s2bounds: { 0: {}, 1: {}, 2: {}, 3: {}, 4: {}, 5: {}, 6: {} },
     bounds: [Infinity, Infinity, -Infinity, -Infinity],
     minzoom: Infinity,
     maxzoom: -Infinity,
     centerpoint: { lon: 0, lat: 0, zoom: 0 },
     attributions: {},
-    tilestats: { total: 0, 0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
+    tilestats: { total: 0, 0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 },
     layers: {},
     vector_layers: [],
   };
@@ -567,7 +568,7 @@ export function toMetadata(metadatas: Metadatas): Metadata {
       /** WM Tile fetching bounds. Helpful to not make unecessary requests for tiles we know don't exist */
       wmbounds: {},
       /** S2 Tile fetching bounds. Helpful to not make unecessary requests for tiles we know don't exist */
-      s2bounds: { 0: {}, 1: {}, 2: {}, 3: {}, 4: {}, 5: {} },
+      s2bounds: { 0: {}, 1: {}, 2: {}, 3: {}, 4: {}, 5: {}, 6: {} },
       /** minzoom at which to request tiles. [default=0] */
       minzoom: metadatas.minzoom ?? 0,
       /** maxzoom at which to request tiles. [default=27] */

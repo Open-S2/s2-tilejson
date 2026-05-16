@@ -6,10 +6,10 @@ import {
   ShapeSchema,
   TileJSONSchema,
   toMetadata,
-} from '../src';
+} from '../src/index.js';
 import { expect, test } from 'bun:test';
 
-import type { LayerMetaData, MapboxTileJSONMetadata, Metadata, Shape } from '../src';
+import type { LayerMetaData, MapboxTileJSONMetadata, Metadata, Shape } from '../src/index.js';
 
 test('basic metadata', () => {
   const metaBuilder = new MetadataBuilder();
@@ -76,6 +76,7 @@ test('basic metadata', () => {
       '3': {},
       '4': {},
       '5': {},
+      '6': {},
     },
     layers: {
       water_lines: {
@@ -105,6 +106,7 @@ test('basic metadata', () => {
       '3': 0,
       '4': 0,
       '5': 0,
+      '6': 0,
       total: 2,
     },
     type: 'vector',
@@ -185,6 +187,7 @@ test('Mapbox Metadata', () => {
       '3': {},
       '4': {},
       '5': {},
+      '6': {},
     },
     layers: {},
     maxzoom: 18,
@@ -265,6 +268,7 @@ test('Minimal metadata', () => {
       '3': {},
       '4': {},
       '5': {},
+      '6': {},
     },
     layers: {},
     maxzoom: 3,
@@ -294,6 +298,7 @@ test('Minimal metadata', () => {
 // });
 
 test('validate the tilejson example', async () => {
+  // @ts-expect-error - weird external type issues who cares
   const ajv = new Ajv();
   const validate = ajv.compile(TileJSONSchema);
 
@@ -311,6 +316,7 @@ test('validate the tilejson example', async () => {
 });
 
 test('validate a shape', () => {
+  // @ts-expect-error - weird external type issues who cares
   const ajv = new Ajv();
   const validate = ajv.compile(ShapeSchema);
 

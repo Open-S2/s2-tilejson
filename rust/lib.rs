@@ -265,6 +265,9 @@ pub struct TileStatsMetadata {
     /// number of tiles for face 5
     #[serde(rename = "5", default)]
     pub total_5: u64,
+    /// number of tiles for face 5
+    #[serde(rename = "6", default)]
+    pub total_wm: u64,
 }
 impl TileStatsMetadata {
     /// Access the total number of tiles for a given face
@@ -276,6 +279,7 @@ impl TileStatsMetadata {
             Face::Face3 => self.total_3,
             Face::Face4 => self.total_4,
             Face::Face5 => self.total_5,
+            Face::WM => self.total_wm,
         }
     }
 
@@ -288,6 +292,7 @@ impl TileStatsMetadata {
             Face::Face3 => self.total_3 += 1,
             Face::Face4 => self.total_4 += 1,
             Face::Face5 => self.total_5 += 1,
+            Face::WM => self.total_wm += 1,
         }
         self.total += 1;
     }
@@ -315,6 +320,9 @@ pub struct FaceBounds {
     /// Tile bounds for face 5 at each zoom
     #[serde(rename = "5")]
     pub face5: BTreeMap<u8, TileBounds>,
+    /// Tile bounds for WM
+    #[serde(rename = "6")]
+    pub wm: BTreeMap<u8, TileBounds>,
 }
 impl FaceBounds {
     /// Access the tile bounds for a given face and zoom
@@ -326,6 +334,7 @@ impl FaceBounds {
             Face::Face3 => &self.face3,
             Face::Face4 => &self.face4,
             Face::Face5 => &self.face5,
+            Face::WM => &self.wm,
         }
     }
 
@@ -338,6 +347,7 @@ impl FaceBounds {
             Face::Face3 => &mut self.face3,
             Face::Face4 => &mut self.face4,
             Face::Face5 => &mut self.face5,
+            Face::WM => &mut self.wm,
         }
     }
 }
@@ -1070,6 +1080,7 @@ mod tests {
                     face3: BTreeMap::new(),
                     face4: BTreeMap::new(),
                     face5: BTreeMap::new(),
+                    wm: BTreeMap::new(),
                 },
                 minzoom: 0,
                 maxzoom: 13,
@@ -1083,6 +1094,7 @@ mod tests {
                     total_3: 0,
                     total_4: 0,
                     total_5: 0,
+                    total_wm: 0,
                 },
                 layers: BTreeMap::from([(
                     "water_lines".into(),
@@ -1121,7 +1133,7 @@ mod tests {
 
         assert_eq!(
             meta_str,
-            "{\"s2tilejson\":\"1.0.0\",\"version\":\"1.0.0\",\"name\":\"OSM\",\"scheme\":\"fzxy\",\"description\":\"A free editable map of the whole world.\",\"type\":\"vector\",\"extension\":\"pbf\",\"encoding\":\"none\",\"faces\":[0,1],\"bounds\":[-120.0,-20.0,44.0,72.0],\"wmbounds\":{\"0\":[0,0,0,0]},\"s2bounds\":{\"0\":{},\"1\":{\"5\":[22,37,22,37]},\"2\":{},\"3\":{},\"4\":{},\"5\":{}},\"minzoom\":0,\"maxzoom\":13,\"centerpoint\":{\"lon\":-38.0,\"lat\":26.0,\"zoom\":6},\"attributions\":{\"OpenStreetMap\":\"https://www.openstreetmap.org/copyright/\"},\"layers\":{\"water_lines\":{\"description\":\"water_lines\",\"minzoom\":0,\"maxzoom\":13,\"draw_types\":[2],\"shape\":{\"class\":\"string\",\"info\":{\"name\":\"string\",\"value\":\"i64\"},\"offset\":\"f64\"}}},\"tilestats\":{\"total\":2,\"0\":0,\"1\":1,\"2\":0,\"3\":0,\"4\":0,\"5\":0},\"vector_layers\":[{\"id\":\"water_lines\",\"description\":\"water_lines\",\"minzoom\":0,\"maxzoom\":13,\"fields\":{}}],\"tilejson\":null}"
+            "{\"s2tilejson\":\"1.0.0\",\"version\":\"1.0.0\",\"name\":\"OSM\",\"scheme\":\"fzxy\",\"description\":\"A free editable map of the whole world.\",\"type\":\"vector\",\"extension\":\"pbf\",\"encoding\":\"none\",\"faces\":[0,1],\"bounds\":[-120.0,-20.0,44.0,72.0],\"wmbounds\":{\"0\":[0,0,0,0]},\"s2bounds\":{\"0\":{},\"1\":{\"5\":[22,37,22,37]},\"2\":{},\"3\":{},\"4\":{},\"5\":{},\"6\":{}},\"minzoom\":0,\"maxzoom\":13,\"centerpoint\":{\"lon\":-38.0,\"lat\":26.0,\"zoom\":6},\"attributions\":{\"OpenStreetMap\":\"https://www.openstreetmap.org/copyright/\"},\"layers\":{\"water_lines\":{\"description\":\"water_lines\",\"minzoom\":0,\"maxzoom\":13,\"draw_types\":[2],\"shape\":{\"class\":\"string\",\"info\":{\"name\":\"string\",\"value\":\"i64\"},\"offset\":\"f64\"}}},\"tilestats\":{\"total\":2,\"0\":0,\"1\":1,\"2\":0,\"3\":0,\"4\":0,\"5\":0,\"6\":0},\"vector_layers\":[{\"id\":\"water_lines\",\"description\":\"water_lines\",\"minzoom\":0,\"maxzoom\":13,\"fields\":{}}],\"tilejson\":null}"
         );
 
         let meta_reparsed: Metadata =
@@ -1167,10 +1179,11 @@ mod tests {
             total_3: 0,
             total_4: 0,
             total_5: 0,
+            total_wm: 0,
         };
         // serialize to JSON and back
         let json = serde_json::to_string(&tilestats).unwrap();
-        assert_eq!(json, r#"{"total":2,"0":0,"1":1,"2":0,"3":0,"4":0,"5":0}"#);
+        assert_eq!(json, r#"{"total":2,"0":0,"1":1,"2":0,"3":0,"4":0,"5":0,"6":0}"#);
         let tilestats2: TileStatsMetadata = serde_json::from_str(&json).unwrap();
         assert_eq!(tilestats, tilestats2);
 
@@ -1271,7 +1284,7 @@ mod tests {
         assert_eq!(
             json,
             "{\"0\":{\"0\":[0,0,0,0]},\"1\":{\"0\":[0,0,1,1]},\"2\":{\"0\":[0,0,2,2]},\"3\":{\"0\"\
-             :[0,0,3,3]},\"4\":{\"0\":[0,0,4,4]},\"5\":{\"0\":[0,0,5,5]}}"
+             :[0,0,3,3]},\"4\":{\"0\":[0,0,4,4]},\"5\":{\"0\":[0,0,5,5]},\"6\":{}}"
         );
         let facebounds2 = serde_json::from_str(&json).unwrap();
         assert_eq!(facebounds, facebounds2);
@@ -1654,7 +1667,8 @@ mod tests {
                     face2: BTreeMap::default(),
                     face3: BTreeMap::default(),
                     face4: BTreeMap::default(),
-                    face5: BTreeMap::default()
+                    face5: BTreeMap::default(),
+                    wm: BTreeMap::default(),
                 },
                 minzoom: 0,
                 maxzoom: 3,
@@ -1668,7 +1682,8 @@ mod tests {
                     total_2: 0,
                     total_3: 0,
                     total_4: 0,
-                    total_5: 0
+                    total_5: 0,
+                    total_wm: 0
                 },
                 vector_layers: vec![],
                 ..Default::default()
@@ -1679,7 +1694,7 @@ mod tests {
     #[test]
     fn test_faces() {
         let meta = Metadata {
-            faces: vec![Face::Face0, Face::Face1, Face::Face4, Face::Face5],
+            faces: vec![Face::Face0, Face::Face1, Face::Face4, Face::Face5, Face::WM],
             ..Default::default()
         };
 
